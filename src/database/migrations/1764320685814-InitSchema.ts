@@ -1,14 +1,15 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class InitSchema1764229562155 implements MigrationInterface {
-    name = 'InitSchema1764229562155'
+export class InitSchema1764320685814 implements MigrationInterface {
+    name = 'InitSchema1764320685814'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "commits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "hash" character varying NOT NULL, "message" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "repoId" uuid, "authorId" uuid, CONSTRAINT "PK_87adcaf9b8d0f42fee0481c0917" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "commits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "hash" character varying NOT NULL, "message" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "repoId" uuid, "authorId" uuid, "taskId" uuid, CONSTRAINT "PK_87adcaf9b8d0f42fee0481c0917" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "pr_task_links" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "pullRequestId" uuid, "taskId" uuid, CONSTRAINT "PK_2a5e61688b0e041be6b18719295" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."pull_requests_status_enum" AS ENUM('open', 'closed', 'merged')`);
         await queryRunner.query(`CREATE TABLE "pull_requests" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying NOT NULL, "description" text, "status" "public"."pull_requests_status_enum" NOT NULL DEFAULT 'open', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "repoId" uuid, "createdById" uuid, CONSTRAINT "PK_e8a8aa8710c3a9650a19a9c2e7b" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "repos" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "githubUrl" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "projectId" uuid, CONSTRAINT "PK_50f4cdbc4e114515f41760400ba" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "branches" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "githubUrl" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "taskId" uuid, "repoId" uuid, CONSTRAINT "PK_7f37d3b42defea97f1df0d19535" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "repos" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "githubUrl" character varying NOT NULL, "webhookId" integer, "webhookSecret" character varying, "owner" character varying NOT NULL, "fullName" character varying NOT NULL, "defaultBranch" character varying NOT NULL DEFAULT 'main', "githubId" integer, "patTokenEncrypted" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "projectId" uuid, CONSTRAINT "PK_50f4cdbc4e114515f41760400ba" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."test_runs_status_enum" AS ENUM('pass', 'fail', 'blocked')`);
         await queryRunner.query(`CREATE TABLE "test_runs" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "status" "public"."test_runs_status_enum" NOT NULL DEFAULT 'pass', "executedAt" TIMESTAMP NOT NULL DEFAULT now(), "testCaseId" uuid, "executedById" uuid, CONSTRAINT "PK_ec4eca50c7ddfbd0dcf89b46dc6" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "test_cases" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" text NOT NULL, "projectId" uuid, CONSTRAINT "PK_39eb2dc90c54d7a036b015f05c4" PRIMARY KEY ("id"))`);
@@ -18,22 +19,26 @@ export class InitSchema1764229562155 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."builds_status_enum" AS ENUM('success', 'failed', 'running')`);
         await queryRunner.query(`CREATE TABLE "builds" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "status" "public"."builds_status_enum" NOT NULL DEFAULT 'running', "startedAt" TIMESTAMP NOT NULL DEFAULT now(), "finishedAt" TIMESTAMP, "projectId" uuid, "triggeredById" uuid, CONSTRAINT "PK_c181c897db1d7b044faace6e86c" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "project_members" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "joinedAt" TIMESTAMP NOT NULL DEFAULT now(), "projectId" uuid, "userId" uuid, CONSTRAINT "PK_0b2f46f804be4aea9234c78bcc9" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "projects" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" character varying, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "ownerId" uuid NOT NULL, CONSTRAINT "PK_6271df0a7aed1d6c0691ce6ac50" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "sprints" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "start_date" date NOT NULL, "end_date" date NOT NULL, "projectId" uuid, CONSTRAINT "PK_6800aa2e0f508561812c4b9afb4" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "projects" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" character varying, "key_prefix" character varying(4) NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "ownerId" uuid NOT NULL, CONSTRAINT "PK_6271df0a7aed1d6c0691ce6ac50" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "sprints" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "archived" boolean NOT NULL DEFAULT false, "start_date" date NOT NULL, "end_date" date NOT NULL, "projectId" uuid, CONSTRAINT "PK_6800aa2e0f508561812c4b9afb4" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "task_comments" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "content" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "taskId" uuid, "userId" uuid, CONSTRAINT "PK_83b99b0b03db29d4cafcb579b77" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "attachments" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "filename" character varying NOT NULL, "url" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "taskId" uuid, "uploadedById" uuid, CONSTRAINT "PK_5e1f050bcff31e3084a1d662412" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TYPE "public"."tasks_status_enum" AS ENUM('todo', 'in_progress', 'done')`);
-        await queryRunner.query(`CREATE TABLE "tasks" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" character varying, "status" "public"."tasks_status_enum" NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "sprintId" uuid, "projectId" uuid, "assigneeId" uuid, "reporterId" uuid, CONSTRAINT "PK_8d12ff38fcc62aaba2cab748772" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TYPE "public"."users_platform_role_enum" AS ENUM('super_admin', 'user')`);
-        await queryRunner.query(`CREATE TABLE "users" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "email" character varying NOT NULL, "password" character varying NOT NULL, "name" character varying NOT NULL, "github_token" character varying, "platform_role" "public"."users_platform_role_enum" NOT NULL DEFAULT 'user', "is_verified" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_97672ac88f789774dd47f7c8be3" UNIQUE ("email"), CONSTRAINT "UQ_51b8b26ac168fbe7d6f5653e6cf" UNIQUE ("name"), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "attachments" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "filename" character varying NOT NULL, "url" character varying NOT NULL, "size" integer, "mimeType" character varying, "public_id" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "taskId" uuid, "uploadedById" uuid, CONSTRAINT "PK_5e1f050bcff31e3084a1d662412" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "public"."tasks_status_enum" AS ENUM('TODO', 'IN_PROGRESS', 'REVIEW', 'QA', 'DONE', 'BLOCKED')`);
+        await queryRunner.query(`CREATE TABLE "tasks" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "key" character varying NOT NULL, "description" character varying, "status" "public"."tasks_status_enum" NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "sprintId" uuid, "projectId" uuid, "assigneeId" uuid, "reporterId" uuid, CONSTRAINT "UQ_c0abf6686e93b2a6497e0cdc22c" UNIQUE ("key"), CONSTRAINT "PK_8d12ff38fcc62aaba2cab748772" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "public"."users_role_enum" AS ENUM('super_admin', 'admin', 'user')`);
+        await queryRunner.query(`CREATE TABLE "users" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "email" character varying NOT NULL, "password" character varying NOT NULL, "name" character varying NOT NULL, "github_token" character varying, "github_name" character varying, "role" "public"."users_role_enum" NOT NULL DEFAULT 'user', "is_verified" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_97672ac88f789774dd47f7c8be3" UNIQUE ("email"), CONSTRAINT "UQ_51b8b26ac168fbe7d6f5653e6cf" UNIQUE ("name"), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "pending_project_invitations" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "token" character varying NOT NULL, "expiresAt" TIMESTAMP NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "projectId" uuid NOT NULL, "userId" uuid NOT NULL, CONSTRAINT "PK_efd4a8aee386592512d697e30d6" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "notifications" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "type" character varying NOT NULL, "content" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "uploadedById" uuid, CONSTRAINT "PK_6a72c3c0f683f6462415e653c3a" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "audit_logs" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "action" character varying NOT NULL, "targetType" character varying NOT NULL, "targetId" integer NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "userId" uuid, CONSTRAINT "PK_1bb179d048bbc581caa3b013439" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "commits" ADD CONSTRAINT "FK_d24121b9d08cee2c64630fb7444" FOREIGN KEY ("repoId") REFERENCES "repos"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "commits" ADD CONSTRAINT "FK_95770d13d237bc9ca1bf6ad5adb" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "commits" ADD CONSTRAINT "FK_84759c7bdd530df3fb5bb2ed2bd" FOREIGN KEY ("taskId") REFERENCES "tasks"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "pr_task_links" ADD CONSTRAINT "FK_de0f5a4eb77e760a05ec8810ec3" FOREIGN KEY ("pullRequestId") REFERENCES "pull_requests"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "pr_task_links" ADD CONSTRAINT "FK_a2419e8f4aa2506efb58010e4a3" FOREIGN KEY ("taskId") REFERENCES "tasks"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "pull_requests" ADD CONSTRAINT "FK_b31de2a04c026344c991d4cb6ba" FOREIGN KEY ("repoId") REFERENCES "repos"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "pull_requests" ADD CONSTRAINT "FK_b3fb22dd52ef1524e2dcb7ccd33" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "branches" ADD CONSTRAINT "FK_27c0661e31fbbe5274853141ecc" FOREIGN KEY ("taskId") REFERENCES "tasks"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "branches" ADD CONSTRAINT "FK_1b78a5ec78a301b17e1ca5af56c" FOREIGN KEY ("repoId") REFERENCES "repos"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "repos" ADD CONSTRAINT "FK_10fc186028e0cee03e9a8e5962f" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "test_runs" ADD CONSTRAINT "FK_e1ffbb1d3192173b888490c9a28" FOREIGN KEY ("testCaseId") REFERENCES "test_cases"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "test_runs" ADD CONSTRAINT "FK_bf94964e5f67b91f184c9553568" FOREIGN KEY ("executedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
@@ -50,11 +55,13 @@ export class InitSchema1764229562155 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "task_comments" ADD CONSTRAINT "FK_ba265816ca1d93f51083e06c520" FOREIGN KEY ("taskId") REFERENCES "tasks"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "task_comments" ADD CONSTRAINT "FK_be77588a6727c9a27075b590048" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "attachments" ADD CONSTRAINT "FK_65152e15d915ebe1294160bd1d3" FOREIGN KEY ("taskId") REFERENCES "tasks"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "attachments" ADD CONSTRAINT "FK_a436b9dc8304f58060e905eb705" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "attachments" ADD CONSTRAINT "FK_a436b9dc8304f58060e905eb705" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "tasks" ADD CONSTRAINT "FK_109de917495c10ad211df0b03e7" FOREIGN KEY ("sprintId") REFERENCES "sprints"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "tasks" ADD CONSTRAINT "FK_e08fca67ca8966e6b9914bf2956" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "tasks" ADD CONSTRAINT "FK_9a16d2c86252529f622fa53f1e3" FOREIGN KEY ("assigneeId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "tasks" ADD CONSTRAINT "FK_7ecc6be7d74a3f441f7aa5215ef" FOREIGN KEY ("reporterId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "pending_project_invitations" ADD CONSTRAINT "FK_83bc3f92b506f2679193e7c7d4c" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "pending_project_invitations" ADD CONSTRAINT "FK_79c9ae6887c401e0314f1642306" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "notifications" ADD CONSTRAINT "FK_f6ee9774c0683c28751f59d9fd6" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "audit_logs" ADD CONSTRAINT "FK_cfa83f61e4d27a87fcae1e025ab" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
     }
@@ -62,6 +69,8 @@ export class InitSchema1764229562155 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "audit_logs" DROP CONSTRAINT "FK_cfa83f61e4d27a87fcae1e025ab"`);
         await queryRunner.query(`ALTER TABLE "notifications" DROP CONSTRAINT "FK_f6ee9774c0683c28751f59d9fd6"`);
+        await queryRunner.query(`ALTER TABLE "pending_project_invitations" DROP CONSTRAINT "FK_79c9ae6887c401e0314f1642306"`);
+        await queryRunner.query(`ALTER TABLE "pending_project_invitations" DROP CONSTRAINT "FK_83bc3f92b506f2679193e7c7d4c"`);
         await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_7ecc6be7d74a3f441f7aa5215ef"`);
         await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_9a16d2c86252529f622fa53f1e3"`);
         await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_e08fca67ca8966e6b9914bf2956"`);
@@ -83,16 +92,20 @@ export class InitSchema1764229562155 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "test_runs" DROP CONSTRAINT "FK_bf94964e5f67b91f184c9553568"`);
         await queryRunner.query(`ALTER TABLE "test_runs" DROP CONSTRAINT "FK_e1ffbb1d3192173b888490c9a28"`);
         await queryRunner.query(`ALTER TABLE "repos" DROP CONSTRAINT "FK_10fc186028e0cee03e9a8e5962f"`);
+        await queryRunner.query(`ALTER TABLE "branches" DROP CONSTRAINT "FK_1b78a5ec78a301b17e1ca5af56c"`);
+        await queryRunner.query(`ALTER TABLE "branches" DROP CONSTRAINT "FK_27c0661e31fbbe5274853141ecc"`);
         await queryRunner.query(`ALTER TABLE "pull_requests" DROP CONSTRAINT "FK_b3fb22dd52ef1524e2dcb7ccd33"`);
         await queryRunner.query(`ALTER TABLE "pull_requests" DROP CONSTRAINT "FK_b31de2a04c026344c991d4cb6ba"`);
         await queryRunner.query(`ALTER TABLE "pr_task_links" DROP CONSTRAINT "FK_a2419e8f4aa2506efb58010e4a3"`);
         await queryRunner.query(`ALTER TABLE "pr_task_links" DROP CONSTRAINT "FK_de0f5a4eb77e760a05ec8810ec3"`);
+        await queryRunner.query(`ALTER TABLE "commits" DROP CONSTRAINT "FK_84759c7bdd530df3fb5bb2ed2bd"`);
         await queryRunner.query(`ALTER TABLE "commits" DROP CONSTRAINT "FK_95770d13d237bc9ca1bf6ad5adb"`);
         await queryRunner.query(`ALTER TABLE "commits" DROP CONSTRAINT "FK_d24121b9d08cee2c64630fb7444"`);
         await queryRunner.query(`DROP TABLE "audit_logs"`);
         await queryRunner.query(`DROP TABLE "notifications"`);
+        await queryRunner.query(`DROP TABLE "pending_project_invitations"`);
         await queryRunner.query(`DROP TABLE "users"`);
-        await queryRunner.query(`DROP TYPE "public"."users_platform_role_enum"`);
+        await queryRunner.query(`DROP TYPE "public"."users_role_enum"`);
         await queryRunner.query(`DROP TABLE "tasks"`);
         await queryRunner.query(`DROP TYPE "public"."tasks_status_enum"`);
         await queryRunner.query(`DROP TABLE "attachments"`);
@@ -109,6 +122,7 @@ export class InitSchema1764229562155 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "test_runs"`);
         await queryRunner.query(`DROP TYPE "public"."test_runs_status_enum"`);
         await queryRunner.query(`DROP TABLE "repos"`);
+        await queryRunner.query(`DROP TABLE "branches"`);
         await queryRunner.query(`DROP TABLE "pull_requests"`);
         await queryRunner.query(`DROP TYPE "public"."pull_requests_status_enum"`);
         await queryRunner.query(`DROP TABLE "pr_task_links"`);
