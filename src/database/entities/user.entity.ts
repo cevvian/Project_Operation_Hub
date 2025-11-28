@@ -1,47 +1,50 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { UserTeamRole } from './user-team-role.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn, } from 'typeorm';
 import { Task } from './task.entity';
 import { Commit } from './commit.entity';
 import { PullRequest } from './pull-request.entity';
 import { TestRun } from './test-run.entity';
 import { Deployment } from './deployment.entity';
 import { Build } from './build.entity';
-import { PlatformRole } from './enum/platform-role.enum';
+import { Role } from './enum/role.enum';
+import { ProjectMember } from './project-member.entity';
+import { Attachment } from './attachment.entity';
 
 
 @Entity({ name: 'users' })
 export class User {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
     @Column({ unique: true })
     email: string;
 
     @Column()
-    password_hash: string;
+    password: string;
 
-    @Column()
+    @Column({unique: true})
     name: string;
 
-    @Column({ nullable: true })
-    github_token: string;
+    @Column({ name: 'github_token', nullable: true })
+    githubToken: string;
+
+    @Column({ name: 'github_name', nullable: true })
+    githubName: string;
 
     @Column({
+        name: 'role',
         type: 'enum',
-        enum: PlatformRole,
-        default: PlatformRole.USER,
+        enum: Role,
+        default: Role.USER,
     })
-    platform_role: PlatformRole;
+    role: Role;
 
-    @OneToMany(() => UserTeamRole, (utr) => utr.user)
-    teamRoles: UserTeamRole[];
+    @Column({ name: 'is_verified', default: false })
+    isVerified: boolean;
+
+    // @OneToMany(() => UserTeamRole, (utr) => utr.user)
+    // teamRoles: UserTeamRole[];
+    @OneToMany(() => ProjectMember, (pm) => pm.user)
+    projectMemberships: ProjectMember[];
 
     @OneToMany(() => Task, (task) => task.assignee)
     assignedTasks: Task[];
@@ -63,6 +66,9 @@ export class User {
 
     @OneToMany(() => Build, (b) => b.triggeredBy)
     builds: Build[];
+
+    @OneToMany(() => Attachment, (att) => att.uploadedBy)
+    attachments: Attachment[];
 
     @CreateDateColumn()
     created_at: Date;

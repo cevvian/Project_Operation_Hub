@@ -13,6 +13,8 @@ async function bootstrap() {
   // Interceptor chuẩn hoá response
   app.useGlobalInterceptors(new SuccessResponseInterceptor());
 
+  // app.use('/github/webhooks', bodyParser.raw({ type: '*/*' }));
+
   const config = new DocumentBuilder()
     .setTitle('Project Operation Hub API')
     .setDescription('API documentation for the project operation hub system')

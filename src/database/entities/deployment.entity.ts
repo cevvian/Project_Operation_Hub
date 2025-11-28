@@ -1,11 +1,4 @@
-// deployment.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  ManyToOne,
-  Column,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, } from 'typeorm';
 
 import { Environment } from './environment.entity';
 import { User } from './user.entity';
@@ -14,8 +7,8 @@ import { DeploymentStatus } from './enum/deploy-status.enum';
 
 @Entity('deployments')
 export class Deployment {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Environment, (env) => env.deployments, {
     onDelete: 'CASCADE',

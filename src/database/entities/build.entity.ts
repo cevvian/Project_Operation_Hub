@@ -1,18 +1,12 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, } from 'typeorm';
 import { Project } from './project.entity';
 import { User } from './user.entity';
 import { BuildStatus } from './enum/build-status.enum';
 
 @Entity('builds')
 export class Build {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Project, (project) => project.builds, {
     onDelete: 'CASCADE',

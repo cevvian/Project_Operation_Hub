@@ -9,32 +9,20 @@ export enum ErrorCode {
   INVALID_KEY = 1006,
   USER_USERNAME_EXISTED = 1008,
   USER_PHONE_EXISTED = 1009,
-
-  PERMISSION_NOT_FOUND = 1300,
-  PERMISSION_ALREADY_EXIST = 1301,
-  PERMISSION_NAME_ALREADY_EXIST = 1302,
-
-  ROLE_NOT_FOUND = 1400,
-  ROLE_ALREADY_EXIST = 1401,
-  ROLE_NAME_ALREADY_EXIST = 1402,
-
-  ORGANIZATION_NOT_FOUND = 1500,
-  ORGANIZATION_ALREADY_EXISTED = 1501,
-  ORGANIZATION_NAME_ALREADY_EXISTED = 1502,
-
-  TEAM_NOT_FOUND = 1600,
-  TEAM_ALREADY_EXISTED = 1601,
-  TEAM_NAME_ALREADY_EXISTED = 1602,
+  ONE_OF_USERS_NOT_FOUND = 1010,
 
   PROJECT_NOT_FOUND = 1700,
   PROJECT_ALREADY_EXISTED = 1701,
   PROJECT_NAME_ALREADY_EXISTED = 1702,
   PROJECT_KEY_ALREADY_EXISTED = 1703,
   PROJECT_NAME_OR_KEY_EXISTED = 1704,
+  INVITATION_NOT_FOUND = 1603,
+  USER_NOT_MEMBER = 1602,
 
   TASK_NOT_FOUND = 1800,
   TASK_ALREADY_EXISTED = 1801,
   TASK_KEY_ALREADY_EXISTED = 1802,
+  INVALID_TASK_STATUS_TRANSITION = 1803,
 
   SPRINT_NOT_FOUND = 1900,
   SPRINT_ALREADY_EXISTED = 1901,
@@ -70,6 +58,8 @@ export enum ErrorCode {
   GITHUB_API_ERROR = 5001,
   GITHUB_TOKEN_NOT_FOUND = 5002,
   GITHUB_WEBHOOK_CONFIG_INVALID = 5003,
+  GITHUB_API_FAIL = 5004,
+  GITHUB_USERNAME_NOT_FOUND = 5005,
 
   // auth
   USER_INACTIVE = 5100,
@@ -93,32 +83,20 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.INVALID_KEY]: 'Invalid key',
   [ErrorCode.USER_USERNAME_EXISTED]: 'Username already exists',
   [ErrorCode.USER_PHONE_EXISTED]: 'Phone number already exists',
-  
-  [ErrorCode.PERMISSION_NOT_FOUND]: 'Permission not exists',
-  [ErrorCode.PERMISSION_ALREADY_EXIST]: 'Permission already eixsted',
-  [ErrorCode.PERMISSION_NAME_ALREADY_EXIST]: 'Permission name already eixsted',
-
-  [ErrorCode.ROLE_NOT_FOUND]: 'Role not exists',
-  [ErrorCode.ROLE_ALREADY_EXIST]: 'Role already eixsted',
-  [ErrorCode.ROLE_NAME_ALREADY_EXIST]: 'Role name already eixsted',
-
-  [ErrorCode.ORGANIZATION_NOT_FOUND]: 'Organization not exists',
-  [ErrorCode.ORGANIZATION_ALREADY_EXISTED]: 'Organization already eixsted',
-  [ErrorCode.ORGANIZATION_NAME_ALREADY_EXISTED]: 'Organization name already eixsted',
-
-  [ErrorCode.TEAM_NOT_FOUND]: 'Team not exists',
-  [ErrorCode.TEAM_ALREADY_EXISTED]: 'Team already eixsted',
-  [ErrorCode.TEAM_NAME_ALREADY_EXISTED]: 'Team name already eixsted',
+  [ErrorCode.ONE_OF_USERS_NOT_FOUND]: 'One or more users do not exist',
 
   [ErrorCode.PROJECT_NOT_FOUND]: 'Project not exists',
   [ErrorCode.PROJECT_ALREADY_EXISTED]: 'Project already eixsted',
   [ErrorCode.PROJECT_NAME_ALREADY_EXISTED]: 'Project name already eixsted',
   [ErrorCode.PROJECT_KEY_ALREADY_EXISTED]: 'Project key already eixsted',
   [ErrorCode.PROJECT_NAME_OR_KEY_EXISTED]: 'Project key or name already existed',
+  [ErrorCode.INVITATION_NOT_FOUND]: 'Invitation not found',
+  [ErrorCode.USER_NOT_MEMBER]: 'User is not a member of this project',
 
   [ErrorCode.TASK_NOT_FOUND]: 'Task not exists',
   [ErrorCode.TASK_ALREADY_EXISTED]: 'Task already eixsted',
   [ErrorCode.TASK_KEY_ALREADY_EXISTED]: 'Task key already eixsted',
+  [ErrorCode.INVALID_TASK_STATUS_TRANSITION]: 'Cant move from this status to new status',
 
   [ErrorCode.SPRINT_NOT_FOUND]: 'Sprint not exists',
   [ErrorCode.SPRINT_ALREADY_EXISTED]: 'Sprint already eixsted',
@@ -153,6 +131,8 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.GITHUB_API_ERROR]: 'GitHub API error - check organization name and token permissions',
   [ErrorCode.GITHUB_TOKEN_NOT_FOUND]: 'GitHub token not found for organization',
   [ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID]: 'Webhook URL or secret not set',
+  [ErrorCode.GITHUB_API_FAIL]: 'Connect to GitHub failed',
+  [ErrorCode.GITHUB_USERNAME_NOT_FOUND]: 'GitHub username not found',
 
   [ErrorCode.USER_INACTIVE]: 'User account is inactive',
   [ErrorCode.PASSWORD_INCORRECT]: 'Password is incorrect',
@@ -175,32 +155,20 @@ export const ErrorStatus: Record<ErrorCode, HttpStatus> = {
   [ErrorCode.INVALID_KEY]: HttpStatus.BAD_REQUEST,
   [ErrorCode.USER_USERNAME_EXISTED]: HttpStatus.BAD_REQUEST,
   [ErrorCode.USER_PHONE_EXISTED]: HttpStatus.BAD_REQUEST,
-  
-  [ErrorCode.PERMISSION_NOT_FOUND]: HttpStatus.NOT_FOUND,
-  [ErrorCode.PERMISSION_ALREADY_EXIST]: HttpStatus.CONFLICT,
-  [ErrorCode.PERMISSION_NAME_ALREADY_EXIST]: HttpStatus.CONFLICT,
-
-  [ErrorCode.ROLE_NOT_FOUND]: HttpStatus.NOT_FOUND,
-  [ErrorCode.ROLE_ALREADY_EXIST]: HttpStatus.CONFLICT,
-  [ErrorCode.ROLE_NAME_ALREADY_EXIST]: HttpStatus.CONFLICT,
-
-  [ErrorCode.ORGANIZATION_NOT_FOUND]: HttpStatus.NOT_FOUND,
-  [ErrorCode.ORGANIZATION_ALREADY_EXISTED]: HttpStatus.CONFLICT,
-  [ErrorCode.ORGANIZATION_NAME_ALREADY_EXISTED]: HttpStatus.CONFLICT,
-
-  [ErrorCode.TEAM_NOT_FOUND]: HttpStatus.NOT_FOUND,
-  [ErrorCode.TEAM_ALREADY_EXISTED]: HttpStatus.CONFLICT,
-  [ErrorCode.TEAM_NAME_ALREADY_EXISTED]: HttpStatus.CONFLICT,
+  [ErrorCode.ONE_OF_USERS_NOT_FOUND]: HttpStatus.BAD_REQUEST,
 
   [ErrorCode.PROJECT_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.PROJECT_ALREADY_EXISTED]: HttpStatus.CONFLICT,
   [ErrorCode.PROJECT_NAME_ALREADY_EXISTED]: HttpStatus.CONFLICT,
   [ErrorCode.PROJECT_KEY_ALREADY_EXISTED]: HttpStatus.CONFLICT,
   [ErrorCode.PROJECT_NAME_OR_KEY_EXISTED]: HttpStatus.CONFLICT,
+  [ErrorCode.INVITATION_NOT_FOUND]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.USER_NOT_MEMBER]: HttpStatus.NOT_FOUND,
 
   [ErrorCode.TASK_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.TASK_ALREADY_EXISTED]: HttpStatus.CONFLICT,
   [ErrorCode.TASK_KEY_ALREADY_EXISTED]: HttpStatus.CONFLICT,
+  [ErrorCode.INVALID_TASK_STATUS_TRANSITION]: HttpStatus.CONFLICT,
 
   [ErrorCode.SPRINT_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.SPRINT_ALREADY_EXISTED]: HttpStatus.CONFLICT,
@@ -235,6 +203,8 @@ export const ErrorStatus: Record<ErrorCode, HttpStatus> = {
   [ErrorCode.GITHUB_API_ERROR]: HttpStatus.BAD_REQUEST,
   [ErrorCode.GITHUB_TOKEN_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.GITHUB_API_FAIL]: HttpStatus.BAD_GATEWAY,
+  [ErrorCode.GITHUB_USERNAME_NOT_FOUND]: HttpStatus.NOT_FOUND ,
 
   [ErrorCode.USER_INACTIVE]: HttpStatus.CONFLICT,
   [ErrorCode.PASSWORD_INCORRECT]: HttpStatus.UNAUTHORIZED,

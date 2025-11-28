@@ -4,6 +4,16 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
+import { UsersModule } from './modules/users/users.module';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { EmailModule } from './modules/email/email.module';
+import { ReposModule } from './modules/repos/repos.module';
+import { GithubModule } from './modules/github/github.module';
+import { SprintsModule } from './modules/sprints/sprints.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
+import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { BranchModule } from './modules/branch/branch.module';
 
 @Module({
   imports: [
@@ -46,6 +56,17 @@ import { join } from 'path';
 // },
 
     }),
+
+    UsersModule,
+    ProjectsModule,
+    EmailModule,
+    ReposModule,
+    GithubModule,
+    SprintsModule,
+    TasksModule,
+    TaskCommentsModule,
+    AttachmentsModule,
+    BranchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

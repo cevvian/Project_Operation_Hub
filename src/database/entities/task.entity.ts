@@ -1,30 +1,19 @@
-// task.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, OneToMany, UpdateDateColumn, } from 'typeorm';
 import { Sprint } from './sprint.entity';
 import { Project } from './project.entity';
 import { User } from './user.entity';
 import { TaskComment } from './task-comment.entity';
 import { Attachment } from './attachment.entity';
 import { PRTaskLink } from './pr-task-link.entity';
+import { TaskStatus } from './enum/task-status.enum';
+import { Branch } from './branch.entity';
+import { Commit } from './commit.entity';
 
-export enum TaskStatus {
-  TODO = 'todo',
-  IN_PROGRESS = 'in_progress',
-  DONE = 'done',
-}
 
 @Entity({ name: 'tasks' })
 export class Task {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Sprint, (s) => s.tasks)
   sprint: Sprint;
@@ -34,6 +23,9 @@ export class Task {
 
   @Column()
   name: string;
+
+  @Column({ unique: true })
+  key: string; // ví dụ: PROJ-123 
 
   @Column({ nullable: true })
   description: string;
@@ -55,6 +47,12 @@ export class Task {
 
   @OneToMany(() => PRTaskLink, (pr) => pr.task)
   prLinks: PRTaskLink[];
+
+  @OneToMany(() => Branch, (br) => br.task)
+  branches: Branch[];
+
+  @OneToMany(() => Commit, (c) => c.task)
+  commits: Commit[];
 
   @CreateDateColumn()
   created_at: Date;

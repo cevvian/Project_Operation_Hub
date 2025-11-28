@@ -7,12 +7,10 @@ import { PRTaskLink } from './pr-task-link.entity';
 
 @Entity('pull_requests')
 export class PullRequest {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @ManyToOne(() => Repo, (repo) => repo.pullRequests, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(() => Repo, (repo) => repo.pullRequests, { onDelete: 'CASCADE' })
   repo: Repo;
 
   @Column()
@@ -30,8 +28,6 @@ export class PullRequest {
   @CreateDateColumn()
   createdAt: Date;
 
-  @OneToMany(() => PRTaskLink, (link) => link.pullRequest, {
-    cascade: true,
-  })
+  @OneToMany(() => PRTaskLink, (link) => link.pullRequest, { cascade: true })
   taskLinks: PRTaskLink[];
 }

@@ -1,25 +1,21 @@
-// sprint.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, } from 'typeorm';
 import { Project } from './project.entity';
 import { Task } from './task.entity';
 
 
 @Entity({ name: 'sprints' })
 export class Sprint {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @ManyToOne(() => Project, (p) => p.sprints)
+  @ManyToOne(() => Project, (p) => p.sprints, { onDelete: 'CASCADE' })
   project: Project;
 
   @Column()
   name: string;
+
+  @Column({ name: 'archived', default: false })
+  archived: boolean;
 
   @Column({ type: 'date' })
   start_date: string;

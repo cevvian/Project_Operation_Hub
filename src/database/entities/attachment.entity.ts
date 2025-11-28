@@ -1,18 +1,11 @@
-// attachment.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, } from 'typeorm';
 import { Task } from './task.entity';
 import { User } from './user.entity';
 
 @Entity('attachments')
 export class Attachment {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Task, (task) => task.attachments, { onDelete: 'CASCADE' })
   task: Task;
@@ -23,11 +16,18 @@ export class Attachment {
   @Column()
   url: string;
 
-//   @ManyToOne(() => User, (user) => user.attachments, {
-//     onDelete: 'SET NULL',
-//   })
-//   uploadedBy: User;
-  @ManyToOne(() => User)
+  @Column({ nullable: true })
+  size: number; // bytes
+
+  @Column({ nullable: true })
+  mimeType: string;
+
+  @Column({ name: 'public_id', nullable: true })
+  publicId: string; // lưu public_id trên Cloudinary
+
+  @ManyToOne(() => User, (user) => user.attachments, {
+    onDelete: 'SET NULL',
+  })
   uploadedBy: User;
 
   @CreateDateColumn()

@@ -1,18 +1,11 @@
-// environment.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, OneToMany, } from 'typeorm';
 import { Project } from './project.entity';
 import { Deployment } from './deployment.entity';
 
 @Entity('environments')
 export class Environment {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Project, (project) => project.environments, {
     onDelete: 'CASCADE',
