@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,7 +19,13 @@ export class UsersService {
   ){}
 
   async create(createUserDto: CreateUserDto) {
-    await this.checkExistedProperty(createUserDto.email, createUserDto.name)
+    const existing = await this.userRepo.findOne({
+      where: {email: createUserDto.email}
+    })
+
+    if(existing){
+      return existing
+    }
 
     const user = await this.userRepo.create({
       email: createUserDto.email,
@@ -29,6 +35,21 @@ export class UsersService {
     })
 
     return await this.userRepo.save(user)
+  }
+
+  async validate(email: string, password: string){
+    const user = await this.findUserByEmail(email)
+
+    if (!user.isVerified) {
+      throw new AppException(ErrorCode.USER_INACTIVE);
+    }
+
+    const isCorrectPassword = await bcrypt.compare(password, user.password)
+    if (!isCorrectPassword) {
+        throw new UnauthorizedException('Password not correct')
+    }
+
+    return user;
   }
 
   async verifyAccount(userId: string){

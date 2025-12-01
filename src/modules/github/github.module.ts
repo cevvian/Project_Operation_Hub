@@ -19,6 +19,6 @@ import { Commit } from 'src/database/entities/commit.entity';
   ],
   controllers: [GithubController, /*GithubWebhookController*/],
   providers: [GithubService, GithubWebhookService],
-  exports: [GithubService],
+  exports: [GithubService, GithubWebhookService],
 })
 export class GithubModule {}

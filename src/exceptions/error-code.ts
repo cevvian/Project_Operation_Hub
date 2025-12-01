@@ -67,7 +67,8 @@ export enum ErrorCode {
   INVALID_TOKEN = 5103,
   ALREADY_VERIFIED = 5104,
   CREATE_FAILED = 5105,
-  REFRESH_TOKEN_REQUIRED = 5106,  
+  REFRESH_TOKEN_REQUIRED = 5106,
+  ACCOUNT_ALREADY_REGISTERED = 5107,
 
   INVALID_UUID_FORMAT = 9997,
   DELETE_FAIL = 9998,
@@ -140,6 +141,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.ALREADY_VERIFIED]: 'Email already verified',
   [ErrorCode.CREATE_FAILED]: 'Create account admin failed',
   [ErrorCode.REFRESH_TOKEN_REQUIRED]: 'Refresh token is required',
+  [ErrorCode.ACCOUNT_ALREADY_REGISTERED]: 'Your account already register',
 
   [ErrorCode.INVALID_UUID_FORMAT]: 'Invalid ID format',
   [ErrorCode.DELETE_FAIL]: 'Delete failed',
@@ -212,6 +214,7 @@ export const ErrorStatus: Record<ErrorCode, HttpStatus> = {
   [ErrorCode.ALREADY_VERIFIED]: HttpStatus.CONFLICT,
   [ErrorCode.CREATE_FAILED]: HttpStatus.CONFLICT,
   [ErrorCode.REFRESH_TOKEN_REQUIRED]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.ACCOUNT_ALREADY_REGISTERED]: HttpStatus.CONFLICT,
 
   [ErrorCode.INVALID_UUID_FORMAT]: HttpStatus.BAD_REQUEST,
   [ErrorCode.DELETE_FAIL]: HttpStatus.INTERNAL_SERVER_ERROR,

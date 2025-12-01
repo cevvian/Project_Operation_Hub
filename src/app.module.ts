@@ -14,6 +14,12 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { BranchModule } from './modules/branch/branch.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from './modules/auth/guard/auth.guard';
+import { RolesGuard } from './modules/auth/guard/role.guard';
+import { ApplicationInitModule } from './modules/init/application-init.module';
+import { TestCaseModule } from './modules/test-case/test-case.module';
 
 @Module({
   imports: [
@@ -67,8 +73,21 @@ import { BranchModule } from './modules/branch/branch.module';
     TaskCommentsModule,
     AttachmentsModule,
     BranchModule,
+    AuthModule,
+    ApplicationInitModule,
+    TestCaseModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+    provide: APP_GUARD,
+    useClass: RolesGuard,
+  },
+  ],
 })
 export class AppModule {}

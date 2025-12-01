@@ -7,6 +7,8 @@ import { Repository } from 'typeorm';
 import { Project } from 'src/database/entities/project.entity';
 import { ErrorCode } from 'src/exceptions/error-code';
 import { AppException } from 'src/exceptions/app.exception';
+import { GithubService } from '../github/github.service';
+import { GithubWebhookService } from '../github/github-webhook.service';
 
 @Injectable()
 export class ReposService {
@@ -16,6 +18,9 @@ export class ReposService {
 
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
+
+    private readonly githubService: GithubService,
+    private readonly webhookService: GithubWebhookService
   ) {}
 
   async create(createRepoDto: CreateRepoDto) {
@@ -31,8 +36,22 @@ export class ReposService {
     if (!project) {
       throw new AppException(ErrorCode.PROJECT_NOT_FOUND)
     }
-
     repo.project = project
+
+    const response = await this.githubService.createRepo(repo.name)
+    repo.fullName = response.full_name
+    repo.githubId = response.id
+    repo.defaultBranch = response.default_branch
+    repo.githubUrl = response.html_url
+    repo.owner = response.owner.login
+    
+    const webhookUrl = 'https://localhost:5000/webhooks/'
+    const webhookSecret = 'aowdhqwoifhwe'
+    if (!webhookUrl || !webhookSecret) {
+      throw new AppException(ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID)
+    }
+    const webhook = await this.webhookService.createWehookRepo(response.name, webhookUrl, webhookSecret)
+    repo.webhookId = webhook.id
 
     return this.repoRepository.save(repo)
   }

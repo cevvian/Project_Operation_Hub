@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, OneToMany, UpdateDateColumn, } from 'typeorm';
 import { Sprint } from './sprint.entity';
 import { Repo } from './repo.entity';
-import { TestCase } from './test-case.entity';
 import { Environment } from './environment.entity';
 import { Build } from './build.entity';
 import { User } from './user.entity';
@@ -32,9 +31,6 @@ export class Project {
 
   @OneToMany(() => Repo, (r) => r.project)
   repos: Repo[];
-
-  @OneToMany(() => TestCase, (tc) => tc.project)
-  testCases: TestCase[];
 
   @OneToMany(() => Environment, (env) => env.project)
   environments: Environment[];

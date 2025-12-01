@@ -6,6 +6,7 @@ import { UsersService } from '../users/users.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { Repository } from 'typeorm';
+import { GithubWebhookService } from './github-webhook.service';
 
 @Injectable()
 export class GithubService {
@@ -14,6 +15,8 @@ export class GithubService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private readonly webhookService: GithubWebhookService
   ) {}
 
   async createRepo(repoName: string, description?: string) {
@@ -29,6 +32,7 @@ export class GithubService {
 
     return res.data;
   }
+
 
   async createBranch(repo: string, branchName: string, from = 'main') {
     const { name: owner, token } = await this.getGitHubTokenAndUsername();

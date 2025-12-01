@@ -8,6 +8,7 @@ import { PRTaskLink } from './pr-task-link.entity';
 import { TaskStatus } from './enum/task-status.enum';
 import { Branch } from './branch.entity';
 import { Commit } from './commit.entity';
+import { TaskPriority } from './enum/task-priority.enum';
 
 
 @Entity({ name: 'tasks' })
@@ -38,6 +39,9 @@ export class Task {
 
   @Column({ type: 'enum', enum: TaskStatus })
   status: TaskStatus;
+
+  @Column({ name: 'priority', enum: TaskPriority  })
+  priority: TaskPriority;
 
   @OneToMany(() => TaskComment, (c) => c.task)
   comments: TaskComment[];

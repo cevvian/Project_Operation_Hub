@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, Up
 import { Task } from './task.entity';
 import { Commit } from './commit.entity';
 import { PullRequest } from './pull-request.entity';
-import { TestRun } from './test-run.entity';
 import { Deployment } from './deployment.entity';
 import { Build } from './build.entity';
 import { Role } from './enum/role.enum';
@@ -57,9 +56,6 @@ export class User {
 
     @OneToMany(() => PullRequest, (pr) => pr.createdBy)
     pullRequests: PullRequest[];
-
-    @OneToMany(() => TestRun, (run) => run.executedBy)
-    testRuns: TestRun[];
 
     @OneToMany(() => Deployment, (dep) => dep.deployedBy)
     deployments: Deployment[];

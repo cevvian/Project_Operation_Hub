@@ -7,8 +7,8 @@ export class EmailService {
   constructor(private readonly mailerService: MailerService) {}
 
   async sendUserConfirmation(to: string, name: string, token?: string) {
-    // const url = `https://localhost/confirm?token=${token}`;
-    const url = `http://localhost:5000/api#/`; 
+    const url = `https://localhost:5000/auth/verify-email?token=${token}`;
+    // const url = `http://localhost:5000/api#/`; 
 
     await this.mailerService.sendMail({
       to,
@@ -22,7 +22,8 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, username: string, token: string) {
-    const verifyUrl = `https://4da6-42-114-202-149.ngrok-free.app/auth/verify-email?token=${token}`;
+    const verifyUrl = `http://localhost:5000/auth/verify-email?token=${token}`;
+    // const verifyUrl = `http://localhost:5000/api`;
 
     await this.mailerService.sendMail({
       to: email,

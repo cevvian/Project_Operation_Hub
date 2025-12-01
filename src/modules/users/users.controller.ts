@@ -27,7 +27,7 @@ export class UsersController {
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   findAll(
     @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query('limit') limit = 10
   ) {
     page = Number(page);
     limit = Number(limit);
