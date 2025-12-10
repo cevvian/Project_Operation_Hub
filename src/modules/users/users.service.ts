@@ -23,8 +23,8 @@ export class UsersService {
       where: {email: createUserDto.email}
     })
 
-    if(existing){
-      return existing
+    if (existing) {
+      throw new AppException(ErrorCode.USER_EMAIL_EXISTED);
     }
 
     const user = await this.userRepo.create({
@@ -105,7 +105,7 @@ export class UsersService {
   }
 
   async findOne(id: string) {
-    const user = await this.userRepo.findOne({ 
+    const user = await this.userRepo.findOne({
       where: {id: id} ,
     })
 
@@ -148,6 +148,13 @@ export class UsersService {
 
     return await this.userRepo.save(user)
   }
+
+  async updatePassword(id: string, newPassword: string) {
+    const user = await this.findOne(id);
+    user.password = await bcrypt.hash(newPassword, 10);
+    return await this.userRepo.save(user);
+  }
+
 
   async remove(id: string) {
     await this.findOne(id);

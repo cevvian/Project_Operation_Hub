@@ -15,7 +15,7 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Post(':id')
+  @Post(':id/verify')
   @ApiOperation({ summary: 'Verify a new user' })
   verify(@Param('id') id: string) {
     return this.usersService.verifyAccount(id);
@@ -34,22 +34,22 @@ export class UsersController {
     return this.usersService.findAll(page,limit);
   }
 
-  @Post(':id')
+  @Post(':id/github-token')
   @ApiOperation({summary: 'Create github token'})
   createToken(@Param('id') id: string, @Body() token: string){
     return this.usersService.createGitHubToken(token, id)
+  }
+
+  @Get('by-email')
+  @ApiOperation({ summary: 'Find one user by email' })
+  findByEmail(@Query('email') email: string) {
+    return this.usersService.findUserByEmail(email);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Find one user' })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Find one user by email' })
-  findByEmail(@Query('email') email: string) {
-    return this.usersService.findUserByEmail(email);
   }
 
   @Patch(':id')

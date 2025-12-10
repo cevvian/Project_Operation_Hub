@@ -20,7 +20,7 @@ export class User {
     @Column()
     password: string;
 
-    @Column({unique: true})
+    @Column()
     name: string;
 
     @Column({ name: 'github_token', nullable: true })

@@ -1,19 +1,34 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+function joinUrl(base: string, path: string): string {
+  const b = base.replace(/\/$/, '');
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${b}${p}`;
+}
 
 @Injectable()
 export class EmailService {
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(
+    private readonly mailerService: MailerService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private getFrontendUrl() {
+    return (
+      this.config.get<string>('APP_FRONTEND_URL') || 'http://localhost:3000'
+    );
+  }
 
   async sendUserConfirmation(to: string, name: string, token?: string) {
-    const url = `https://localhost:5000/auth/verify-email?token=${token}`;
-    // const url = `http://localhost:5000/api#/`; 
+    const appUrl = this.getFrontendUrl();
+    const url = `${joinUrl(appUrl, '/auth/verify-email')}?token=${token}`;
 
     await this.mailerService.sendMail({
       to,
       subject: 'Xác nhận tài khoản của bạn',
-      template: 'confirmation.hbs', // file templates/confirmation.hbs
+      template: 'confirmation.hbs',
       context: {
         name,
         url,
@@ -22,8 +37,8 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, username: string, token: string) {
-    const verifyUrl = `http://localhost:5000/auth/verify-email?token=${token}`;
-    // const verifyUrl = `http://localhost:5000/api`;
+    const appUrl = this.getFrontendUrl();
+    const verifyUrl = `${joinUrl(appUrl, '/auth/verify-email')}?token=${token}`;
 
     await this.mailerService.sendMail({
       to: email,
@@ -41,21 +56,8 @@ export class EmailService {
   }
 
   async sendInviteEmail(email: string, username: string, teamName: string, token: string) {
-    // const templatePath = path.join(__dirname, 'templates', 'invite-member.html');
-    // let html = fs.readFileSync(templatePath, 'utf-8');
-
-    const inviteUrl = `https://your-app.com/teams/join?token=${token}`;
-
-    // html = html
-    //   .replace('{{username}}', username)
-    //   .replace('{{teamName}}', teamName)
-    //   .replace('{{inviteUrl}}', inviteUrl);
-
-    // await this.mailerService.sendMail({
-    //   to: email,
-    //   subject: `Invitation to join team ${teamName}`,
-    //   html,
-    // });
+    const appUrl = this.getFrontendUrl();
+    const inviteUrl = `${joinUrl(appUrl, '/teams/join')}?token=${token}`;
 
     await this.mailerService.sendMail({
       to: email,
@@ -69,7 +71,21 @@ export class EmailService {
     });
   }
 
-  // Gửi email text thuần
+  async sendPasswordResetEmail(email: string, username: string, token: string) {
+    const appUrl = this.getFrontendUrl();
+    const resetUrl = `${joinUrl(appUrl, '/auth/reset-password')}?token=${token}`;
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Yêu cầu đặt lại mật khẩu',
+      template: 'password-reset.hbs',
+      context: {
+        username,
+        url: resetUrl,
+      },
+    });
+  }
+
   async sendPlainText(to: string, subject: string, text: string) {
     await this.mailerService.sendMail({
       to,
@@ -78,3 +94,4 @@ export class EmailService {
     });
   }
 }
+

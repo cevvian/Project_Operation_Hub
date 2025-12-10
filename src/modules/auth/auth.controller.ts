@@ -5,6 +5,9 @@ import { Public } from './guard/auth.guard';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from './decorator/user.decorator';
 import { UsersService } from '../users/users.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -29,6 +32,21 @@ export class AuthController {
   async register(@Body() data: CreateUserDto) {
     return this.authService.register(data);
   }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.password);
+  }
+
 
   @Get('profile')
   getProfile(@User('id') userId: string) {

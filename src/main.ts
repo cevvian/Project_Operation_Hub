@@ -7,6 +7,16 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable CORS for frontend
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      process.env.APP_FRONTEND_URL
+    ],
+    credentials: true,
+  });
+
   // Exception Filter
   app.useGlobalFilters(new GlobalExceptionFilter());
 
@@ -39,6 +49,6 @@ async function bootstrap() {
     }
   });
 
-  await app.listen(process.env.PORT ?? 5000);
+  await app.listen(process.env.API_PORT ?? 5000);
 }
 bootstrap();

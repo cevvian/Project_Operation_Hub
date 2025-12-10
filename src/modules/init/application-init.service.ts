@@ -38,5 +38,34 @@ export class ApplicationInitService implements OnModuleInit {
 
             console.log('Admin account created. Default password is : adminadmin. Please change it soon!');
         }
+
+
+        const normalUser = await this.usersRepository.findOne({
+            where: { email: 'user@gmail.com' } 
+        });
+
+        if (!normalUser) {
+            const user = this.usersRepository.create({
+                name: "Normal User",
+                email: "user@gmail.com", 
+                password: await bcrypt.hash('useruser', 10),
+                isVerified: true,
+                role: Role.USER
+            });
+
+            await this.usersRepository.save(user);
+
+            const existing = await this.usersRepository.findOne({
+                where: { email: "user@gmail.com" }
+            });
+            if (!existing) {
+                throw new AppException(ErrorCode.CREATE_FAILED);
+            }
+
+            console.log('Normal User account created. Default password is : useruser. Please change it soon!');
+        }
+    
+
     }
+    
 }
