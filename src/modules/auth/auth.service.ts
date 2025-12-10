@@ -62,7 +62,9 @@ export class AuthService {
 
     await this.userService.verifyAccount(user.id);
 
-    return 'Email xác thực thành công.';
+    return {
+        message: 'Email xác thực thành công.'
+    };
   }
 
   // https://grok.com/share/bGVnYWN5_7cb25013-b6e6-4213-811d-1645fa5aceef
