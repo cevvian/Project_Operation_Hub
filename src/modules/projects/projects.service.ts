@@ -10,12 +10,17 @@ import { ErrorCode } from 'src/exceptions/error-code';
 import { ProjectMember } from 'src/database/entities/project-member.entity';
 import { InviteProjectMemberDto } from './dto/invite-project-member.dto';
 import { PendingProjectInvitation } from 'src/database/entities/pending-project-invitation.entity';
+import { User } from 'src/database/entities/user.entity';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+
     @InjectRepository(ProjectMember)
     private readonly projectMemberRepo: Repository<ProjectMember>,
     @InjectRepository(PendingProjectInvitation)
@@ -23,6 +28,29 @@ export class ProjectsService {
 
     private readonly usersService: UsersService,
   ) {}
+
+  async getMyProject(page: number, limit: number, userId: string) {
+    const user = await this.userRepo.findOne({
+      where: {id:userId}
+    })
+    if(!user) throw new AppException(ErrorCode.USER_NOT_EXISTED)
+
+    const [data, total] = await this.projectRepo.findAndCount({
+      where: { owner: { id: userId } },
+      skip: (page - 1) * limit,
+      take: limit,
+      relations: ['owner'],
+      order: { created_at: 'DESC' },
+    });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 
   async create(dto: CreateProjectDto) {
     const owner = await this.usersService.findOne(dto.ownerId);
@@ -222,6 +250,8 @@ export class ProjectsService {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+
 
   async findOne(id: string) {
     const project = await this.projectRepo.findOne({

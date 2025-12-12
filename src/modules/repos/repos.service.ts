@@ -9,6 +9,7 @@ import { ErrorCode } from 'src/exceptions/error-code';
 import { AppException } from 'src/exceptions/app.exception';
 import { GithubService } from '../github/github.service';
 import { GithubWebhookService } from '../github/github-webhook.service';
+import { User } from 'src/database/entities/user.entity';
 
 @Injectable()
 export class ReposService {
@@ -19,11 +20,15 @@ export class ReposService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
 
+    // @InjectRepository(User)
+    // private readonly userRepository: Repository<User>,
+
     private readonly githubService: GithubService,
     private readonly webhookService: GithubWebhookService
   ) {}
 
-  async create(createRepoDto: CreateRepoDto) {
+  async create(createRepoDto: CreateRepoDto,  user: User) {
+    // const user = await this.userRepository.findOne(user)
     const repo = this.repoRepository.create({
       name: createRepoDto.name,
       githubUrl: createRepoDto.githubUrl
@@ -45,7 +50,7 @@ export class ReposService {
     repo.githubUrl = response.html_url
     repo.owner = response.owner.login
     
-    const webhookUrl = 'https://localhost:5000/webhooks/'
+    const webhookUrl = 'https://localhost:4000/webhooks/'
     const webhookSecret = 'aowdhqwoifhwe'
     if (!webhookUrl || !webhookSecret) {
       throw new AppException(ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID)

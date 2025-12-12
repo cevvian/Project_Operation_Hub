@@ -5,6 +5,7 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { InviteProjectMemberDto } from './dto/invite-project-member.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { User } from '../auth/decorator/user.decorator';
 
 @Controller('projects')
 export class ProjectsController {
@@ -45,6 +46,14 @@ export class ProjectsController {
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   async findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
     return this.projectsService.findAll(Number(page), Number(limit));
+  }
+
+  @Get('/my-projects')
+  @ApiOperation({ summary: 'Get all my projects (paginated)' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  async findAllMyProject(@Query('page') page = 1, @Query('limit') limit = 10,  @User('sub') userId: string) {
+    return this.projectsService.getMyProject(Number(page), Number(limit), userId);
   }
 
   @Get(':id')

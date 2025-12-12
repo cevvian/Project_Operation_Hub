@@ -49,7 +49,7 @@ export class AuthController {
 
 
   @Get('profile')
-  getProfile(@User('id') userId: string) {
+  getProfile(@User('sub') userId: string) {
     return this.userService.findOne(userId)
   }
 
