@@ -24,7 +24,7 @@ export class UsersService {
     })
 
     if (existing) {
-      throw new AppException(ErrorCode.USER_EMAIL_EXISTED);
+      return existing
     }
 
     const user = await this.userRepo.create({
