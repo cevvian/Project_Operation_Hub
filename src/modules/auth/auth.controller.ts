@@ -3,10 +3,12 @@ import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login.dto';
 import { Public } from './guard/auth.guard';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { User } from './decorator/user.decorator';
 import { UsersService } from '../users/users.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ApiOperation } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -45,6 +47,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.password);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend email verification' })
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    await this.authService.resendVerificationEmail(dto.email);
+    return { message: 'Verification email has been resent. Please check your inbox.' };
   }
 
 

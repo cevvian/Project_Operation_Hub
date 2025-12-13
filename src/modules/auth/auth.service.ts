@@ -30,21 +30,31 @@ export class AuthService {
   async register(data: CreateUserDto) {
     const user = await this.userService.create(data);
 
-    if(!user.isVerified){
+    // If sign-up comes from an invitation link, activate immediately (skip email verification)
+    if (data.invitation_token) {
+      if (!user.isVerified) {
+        await this.userService.verifyAccount(user.id);
+      }
+      return { message: 'Account created via invitation. You can sign in now.' };
+    }
+
+    // Normal flow: require email verification
+    if (!user.isVerified) {
       const token = await this.jwtService.signAsync(
         { sub: user.id, email: user.email },
         {
-            secret: this.configService.getOrThrow<string>('JWT_EMAIL_VERIFICATION_SECRET'),
-            expiresIn: '15m',
+          secret: this.configService.getOrThrow<string>('JWT_EMAIL_VERIFICATION_SECRET'),
+          expiresIn: '15m',
         },
       );
       await this.emailService.sendVerificationEmail(user.email, user.name, token);
-    }
-    else throw new AppException(ErrorCode.ACCOUNT_ALREADY_REGISTERED)
-
-    return {
+      return {
         message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.',
-    };
+      };
+    }
+
+    // Existing verified user trying to register again
+    throw new AppException(ErrorCode.ACCOUNT_ALREADY_REGISTERED);
   }
 
   async verifyEmail(token: string) {
@@ -68,48 +78,7 @@ export class AuthService {
   }
 
   // https://grok.com/share/bGVnYWN5_7cb25013-b6e6-4213-811d-1645fa5aceef
-  async resendVerificationEmail(email: string) {
-    const user = await this.userService.findUserByEmail(email);
-
-    if (!user) {
-      throw new AppException(ErrorCode.USER_NOT_EXISTED);
-    }
-
-    if (user.isVerified) {
-      throw new AppException(ErrorCode.ALREADY_VERIFIED);
-    }
-
-    // Check rate limit (tối đa 3 lần/giờ)
-    // const now = new Date();
-    // const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-
-    // const recentResends = await this.userService.countResendAttempts(
-    //   user.id,
-    //   oneHourAgo
-    // );
-
-    // if (recentResends >= 3) {
-    //   throw new AppException(ErrorCode.TOO_MANY_VERIFICATION_EMAILS);
-    // }
-
-    // Tạo token mới
-    const token = await this.jwtService.signAsync(
-      { sub: user.id, email: user.email },
-      {
-        secret: this.configService.getOrThrow('JWT_EMAIL_VERIFICATION_SECRET'),
-        expiresIn: '15m',
-      },
-    );
-
-    // Gửi email & log attempt
-    await this.emailService.sendVerificationEmail(user.email, user.name, token);
-
-    // await this.userService.logResendAttempt(user.id);
-
-    return {
-      message: 'Email xác thực đã được gửi lại. Vui lòng kiểm tra hộp thư.',
-    };
-  }
+  
 
   async forgotPassword(email: string) {
     const user = await this.userService.findUserByEmail(email).catch(() => null);
@@ -161,4 +130,28 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.userService.findUserByEmail(email);
+
+    if (!user) {
+      // To prevent email enumeration, we don't reveal if the user exists.
+      return;
+    }
+
+    if (user.isVerified) {
+      throw new AppException(ErrorCode.ALREADY_VERIFIED);
+    }
+
+    const token = await this.jwtService.signAsync(
+      { sub: user.id, email: user.email },
+      {
+        secret: this.configService.getOrThrow('JWT_EMAIL_VERIFICATION_SECRET'),
+        expiresIn: '15m',
+      },
+    );
+
+    await this.emailService.sendVerificationEmail(user.email, user.name, token);
+  }
 }
+

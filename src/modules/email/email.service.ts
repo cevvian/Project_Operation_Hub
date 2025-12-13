@@ -71,6 +71,23 @@ export class EmailService {
     });
   }
 
+  async sendProjectInvitationEmail(to: string, inviterName: string, projectName: string, token: string) {
+    const appUrl = this.getFrontendUrl();
+    const inviteUrl = `${joinUrl(appUrl, '/accept-invitation')}?token=${token}`;
+
+    await this.mailerService.sendMail({
+      to,
+      subject: `Invitation to join project: ${projectName}`,
+      template: 'project-invitation.hbs', // We will create this template
+      context: {
+        inviterName,
+        projectName,
+        url: inviteUrl,
+      },
+    });
+  }
+
+
   async sendPasswordResetEmail(email: string, username: string, token: string) {
     const appUrl = this.getFrontendUrl();
     const resetUrl = `${joinUrl(appUrl, '/auth/reset-password')}?token=${token}`;

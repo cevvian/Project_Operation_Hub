@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Public } from '../auth/guard/auth.guard';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -21,23 +22,52 @@ export class ProjectsController {
   @Post(':id/invite')
   @ApiOperation({ summary: 'Invite members to a project' })
   @ApiParam({ name: 'id', description: 'Project ID', example: 'uuid-of-project' })
-  inviteMembers(@Param('id') projectId: string, @Body() dto: InviteProjectMemberDto) {
-    dto.projectId = projectId;
-    return this.projectsService.inviteMembers(dto);
+  inviteMembers(
+    @Param('id') projectId: string,
+    @Body() dto: InviteProjectMemberDto,
+    @User('sub') requestingUserId: string,
+  ) {
+    return this.projectsService.inviteMembers(projectId, dto, requestingUserId);
   }
+
+
+  @Public()
+  @Get('invitation/:token')
+  @ApiOperation({ summary: 'Get details of an invitation' })
+  @ApiParam({ name: 'token', description: 'Invitation token' })
+  getInvitationDetails(@Param('token') token: string) {
+    return this.projectsService.getInvitationDetails(token);
+  }
+
+  @Get(':projectId/members/search')
+  @ApiOperation({ summary: 'Search for users to invite to the project' })
+  searchUsersToInvite(
+    @Param('projectId') projectId: string,
+    @Query('query') query: string,
+  ) {
+    return this.projectsService.searchUsersToInvite(projectId, query);
+  }
+
 
   @Post('accept-invitation')
   @ApiOperation({ summary: 'Accept an invitation to join a project' })
-  acceptInvitation(@Body() dto: AcceptInvitationDto) {
-    return this.projectsService.acceptInvitation(dto.token);
+  acceptInvitation(
+    @Body() dto: AcceptInvitationDto,
+    @User('sub') requestingUserId: string,
+  ) {
+    return this.projectsService.acceptInvitation(dto.token, requestingUserId);
   }
 
   @Delete(':projectId/members/:userId')
   @ApiOperation({ summary: 'Remove a member from a project' })
   @ApiParam({ name: 'projectId', description: 'Project ID', example: 'uuid-of-project' })
   @ApiParam({ name: 'userId', description: 'User ID', example: 'uuid-of-user' })
-  removeMember(@Param('projectId') projectId: string, @Param('userId') userId: string) {
-    return this.projectsService.removeMember(projectId, userId);
+  removeMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userId: string,
+    @User('sub') requestingUserId: string,
+  ) {
+    return this.projectsService.removeMember(projectId, userId, requestingUserId);
   }
 
   @Get()

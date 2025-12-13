@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Invitation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Project Invitation</h2>
+    <p>Hello,</p>
+    <p><strong>{{inviterName}}</strong> has invited you to join the project: <strong>{{projectName}}</strong>.</p>
+    <p>Click the button below to accept the invitation and start collaborating.</p>
+    <p>
+      <a href="{{url}}" class="button">Accept Invitation</a>
+    </p>
+    <p>If you did not expect this invitation, you can safely ignore this email.</p>
+    <p>Thanks,<br>The Project Operation Hub Team</p>
+  </div>
+</body>
+</html>
+

@@ -5,6 +5,8 @@ import { Environment } from './environment.entity';
 import { Build } from './build.entity';
 import { User } from './user.entity';
 import { ProjectMember } from './project-member.entity';
+import { PendingProjectInvitation } from './pending-project-invitation.entity';
+
 
 
 @Entity({ name: 'projects' })
@@ -38,6 +40,9 @@ export class Project {
   @OneToMany(() => Build, (b) => b.project)
   builds: Build[];
 
+
+  @OneToMany(() => PendingProjectInvitation, (invitation) => invitation.project)
+  pendingInvitations: PendingProjectInvitation[];
   @OneToMany(() => ProjectMember, (pm) => pm.project)
   members: ProjectMember[];
 

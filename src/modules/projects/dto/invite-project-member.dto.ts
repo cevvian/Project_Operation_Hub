@@ -1,27 +1,27 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsString, IsUUID, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class InviteSingleMemberDto {
-  @ApiProperty({ description: 'User ID of the member to invite', example: 'uuid-user-123' })
-  @IsUUID()
-  @IsNotEmpty()
-  userId: string;
-
-  @ApiPropertyOptional({ description: 'Role in project', example: 'DEV' })
-  @IsString()
-  role?: string;
-}
+import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsEmail, IsOptional, IsUUID } from 'class-validator';
 
 export class InviteProjectMemberDto {
-  @ApiProperty({ description: 'Project ID to invite members to', example: 'uuid-project-123' })
-  @IsUUID()
-  @IsNotEmpty()
-  projectId: string;
-
-  @ApiProperty({ description: 'List of members to invite', type: [InviteSingleMemberDto] })
+  @ApiProperty({
+    description: 'List of emails for users not yet in the system',
+    example: ['new.user@example.com'],
+    type: [String],
+    required: false,
+  })
+  @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => InviteSingleMemberDto)
-  members: InviteSingleMemberDto[];
+  @IsEmail({}, { each: true })
+  emails?: string[];
+
+  @ApiProperty({
+    description: 'List of user IDs for existing users',
+    example: ['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'],
+    type: [String],
+    format: 'uuid',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  userIds?: string[];
 }

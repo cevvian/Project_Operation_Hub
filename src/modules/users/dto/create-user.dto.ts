@@ -39,6 +39,14 @@ export class CreateUserDto {
     github_token?: string;
 
     @ApiPropertyOptional({
+        description: 'Invitation token if the user is signing up through a project invite link.',
+        example: 'invitation-token-hex',
+    })
+    @IsOptional()
+    @IsString()
+    invitation_token?: string;
+
+    @ApiPropertyOptional({
         description: 'Platform-level role of the user. Default is USER.',
         enum: Role,
         example: Role.USER,

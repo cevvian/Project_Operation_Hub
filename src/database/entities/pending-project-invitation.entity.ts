@@ -10,7 +10,13 @@ export class PendingProjectInvitation {
   @ManyToOne(() => Project, { nullable: false })
   project: Project;
 
-  @ManyToOne(() => User, { nullable: false })
+  @Column()
+  email: string;
+
+  @Column({ default: 'pending' })
+  status: string; // pending, accepted, expired
+
+  @ManyToOne(() => User, { nullable: true }) // User can be null if they haven't signed up yet
   user: User;
 
   @Column()

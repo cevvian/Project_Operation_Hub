@@ -17,6 +17,7 @@ export enum ErrorCode {
   PROJECT_KEY_ALREADY_EXISTED = 1703,
   PROJECT_NAME_OR_KEY_EXISTED = 1704,
   INVITATION_NOT_FOUND = 1603,
+  INVITATION_EXPIRED = 1604,
   USER_NOT_MEMBER = 1602,
 
   TASK_NOT_FOUND = 1800,
@@ -92,6 +93,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.PROJECT_KEY_ALREADY_EXISTED]: 'Project key already eixsted',
   [ErrorCode.PROJECT_NAME_OR_KEY_EXISTED]: 'Project key or name already existed',
   [ErrorCode.INVITATION_NOT_FOUND]: 'Invitation not found',
+  [ErrorCode.INVITATION_EXPIRED]: 'Invitation has expired',
   [ErrorCode.USER_NOT_MEMBER]: 'User is not a member of this project',
 
   [ErrorCode.TASK_NOT_FOUND]: 'Task not exists',
@@ -165,6 +167,7 @@ export const ErrorStatus: Record<ErrorCode, HttpStatus> = {
   [ErrorCode.PROJECT_KEY_ALREADY_EXISTED]: HttpStatus.CONFLICT,
   [ErrorCode.PROJECT_NAME_OR_KEY_EXISTED]: HttpStatus.CONFLICT,
   [ErrorCode.INVITATION_NOT_FOUND]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.INVITATION_EXPIRED]: HttpStatus.BAD_REQUEST,
   [ErrorCode.USER_NOT_MEMBER]: HttpStatus.NOT_FOUND,
 
   [ErrorCode.TASK_NOT_FOUND]: HttpStatus.NOT_FOUND,

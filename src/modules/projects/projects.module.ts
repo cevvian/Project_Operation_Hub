@@ -7,6 +7,7 @@ import { UsersModule } from '../users/users.module';
 import { ProjectMember } from 'src/database/entities/project-member.entity';
 import { PendingProjectInvitation } from 'src/database/entities/pending-project-invitation.entity';
 import { User } from 'src/database/entities/user.entity';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { User } from 'src/database/entities/user.entity';
     TypeOrmModule.forFeature([Project]),
     TypeOrmModule.forFeature([ProjectMember]),
     TypeOrmModule.forFeature([PendingProjectInvitation]),
-    UsersModule
+    UsersModule,
+    EmailModule
   ],
   controllers: [ProjectsController],
   providers: [ProjectsService],
