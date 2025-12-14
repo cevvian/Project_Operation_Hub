@@ -4,121 +4,148 @@ import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Project } from 'src/database/entities/project.entity';
 import { Sprint } from 'src/database/entities/sprint.entity';
-import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AppException } from 'src/exceptions/app.exception';
 import { ErrorCode } from 'src/exceptions/error-code';
-import { Task } from 'src/database/entities/task.entity';
+import { ProjectMember } from 'src/database/entities/project-member.entity';
+import { SprintStatus } from 'src/database/entities/enum/sprint-status.enum';
 
 @Injectable()
 export class SprintsService {
   constructor(
-    @InjectRepository(Sprint)
-    private readonly sprintRepo: Repository<Sprint>,
-
-    @InjectRepository(Project)
-    private readonly projectRepo: Repository<Project>,
+    @InjectRepository(Sprint) private readonly sprintRepo: Repository<Sprint>,
+    @InjectRepository(Project) private readonly projectRepo: Repository<Project>,
+    @InjectRepository(ProjectMember) private readonly memberRepo: Repository<ProjectMember>,
   ) {}
 
-  
-  async create(createSprintDto: CreateSprintDto) {
-    const project = await this.projectRepo.findOne({
-      where: { id: createSprintDto.projectId },
-    });
+  private async checkProjectMembership(userId: string, projectId: string): Promise<void> {
+    // First, check membership table
+    const member = await this.memberRepo.findOne({ where: { user: { id: userId }, project: { id: projectId } } });
+    if (member) return;
 
-    if (!project) {
-      throw new AppException(ErrorCode.PROJECT_NOT_FOUND);
-    }
+    // If not a member, allow project owner as implicit member to avoid legacy data issues
+    const project = await this.projectRepo.findOne({ where: { id: projectId }, relations: ['owner'] });
+    if (project?.owner?.id === userId) return;
+
+    // Otherwise, unauthorized
+    throw new AppException(ErrorCode.UNAUTHORIZED);
+  }
+
+  async create(dto: CreateSprintDto, userId: string) {
+    await this.checkProjectMembership(userId, dto.projectId);
+    const project = await this.projectRepo.findOneBy({ id: dto.projectId });
+    if (!project) throw new AppException(ErrorCode.PROJECT_NOT_FOUND);
+
+    const maxOrder = await this.sprintRepo
+      .createQueryBuilder('sprint')
+      .select('MAX(sprint.orderIndex)', 'max')
+      .where('sprint.projectId = :projectId', { projectId: dto.projectId })
+      .getRawOne();
 
     const sprint = this.sprintRepo.create({
-      name: createSprintDto.name,
-      start_date: createSprintDto.start_date,
-      end_date: createSprintDto.end_date,
       project,
+      name: dto.name,
+      goal: dto.goal,
+      startDate: dto.startDate ? new Date(dto.startDate) : null,
+      endDate: dto.endDate ? new Date(dto.endDate) : null,
+      orderIndex: (maxOrder.max || 0) + 1,
+      status: SprintStatus.PLANNED,
     });
 
-    return await this.sprintRepo.save(sprint);
+    return this.sprintRepo.save(sprint);
   }
 
-  async findAll(page = 1, limit = 10) {
-    const [data, total] = await this.sprintRepo.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      relations: ['project', 'tasks'],
-      order: { start_date: 'ASC' },
-    });
+  async findByProject(
+    projectId: string,
+    userId: string,
+    includeTasks = false,
+    filters?: { statuses?: string[]; startFrom?: string; startTo?: string; endFrom?: string; endTo?: string },
+  ) {
+    await this.checkProjectMembership(userId, projectId);
 
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    const qb = this.sprintRepo
+      .createQueryBuilder('sprint')
+      .leftJoinAndSelect('sprint.tasks', 'tasks', includeTasks ? undefined : '1=0')
+      .where('sprint.projectId = :projectId', { projectId })
+      // Single ordering rule requested: earliest startDate first. Nulls last.
+      .orderBy('sprint.startDate', 'ASC', 'NULLS LAST')
+      .addOrderBy('sprint.orderIndex', 'ASC');
+
+    if (filters?.statuses?.length) {
+      qb.andWhere('sprint.status IN (:...statuses)', { statuses: filters.statuses });
+    }
+    if (filters?.startFrom) {
+      qb.andWhere('sprint.startDate IS NOT NULL AND sprint.startDate >= :startFrom', { startFrom: filters.startFrom });
+    }
+    if (filters?.startTo) {
+      qb.andWhere('sprint.startDate IS NOT NULL AND sprint.startDate <= :startTo', { startTo: filters.startTo });
+    }
+    if (filters?.endFrom) {
+      qb.andWhere('sprint.endDate IS NOT NULL AND sprint.endDate >= :endFrom', { endFrom: filters.endFrom });
+    }
+    if (filters?.endTo) {
+      qb.andWhere('sprint.endDate IS NOT NULL AND sprint.endDate <= :endTo', { endTo: filters.endTo });
+    }
+
+    return qb.getMany();
   }
 
-  async findOne(id: string) {
-    const sprint = await this.sprintRepo.findOne({
-      where: { id },
-      relations: ['project', 'tasks'],
-    });
-
+  async findOne(sprintId: string, projectId: string, userId: string) {
+    await this.checkProjectMembership(userId, projectId);
+    const sprint = await this.sprintRepo.findOne({ where: { id: sprintId, project: { id: projectId } } });
     if (!sprint) throw new AppException(ErrorCode.SPRINT_NOT_FOUND);
-
     return sprint;
   }
 
-  async findByProject(projectId: string) {
-    return this.sprintRepo.find({
-      where: { project: { id: projectId } },
-      order: { start_date: 'ASC' },
-      relations: ['tasks'],
-    });
-  }
-
-  async getCurrentSprint(projectId: string, date = new Date().toISOString()) {
-    return this.sprintRepo.findOne({
-      where: {
-        project: { id: projectId },
-        start_date: LessThanOrEqual(date),
-        end_date: MoreThanOrEqual(date),
-      },
-      relations: ['tasks'],
-    });
-  }
-
-  async archiveSprint(id: string) {
-    const sprint = await this.findOne(id);
-    sprint.archived = true;
-    return this.sprintRepo.save(sprint);
-  }
-
-  async addTaskToSprint(sprintId: string, task: Task) {
-    const sprint = await this.findOne(sprintId);
-    sprint.tasks.push(task);
-    return this.sprintRepo.save(sprint);
-  }
-
-  async update(id: string, updateSprintDto: UpdateSprintDto) {
-    const sprint = await this.findOne(id);
+  async update(sprintId: string, projectId: string, userId: string, dto: UpdateSprintDto) {
+    const sprint = await this.findOne(sprintId, projectId, userId);
 
     Object.assign(sprint, {
-      name: updateSprintDto.name ?? sprint.name,
-      start_date: updateSprintDto.start_date ?? sprint.start_date,
-      end_date: updateSprintDto.end_date ?? sprint.end_date,
+      ...dto,
+      startDate: dto.startDate ? new Date(dto.startDate) : sprint.startDate,
+      endDate: dto.endDate ? new Date(dto.endDate) : sprint.endDate,
     });
 
-    return await this.sprintRepo.save(sprint);
+    // Prevent changing projectId
+    if (dto.projectId) delete (sprint as any).projectId;
+
+    return this.sprintRepo.save(sprint);
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(sprintId: string, projectId: string, userId: string) {
+    const sprint = await this.findOne(sprintId, projectId, userId);
+    // TODO: Add logic to handle tasks in the sprint (e.g., move to backlog)
+    await this.sprintRepo.remove(sprint);
+    return { message: 'Sprint deleted successfully' };
+  }
 
-    const result = await this.sprintRepo.delete(id);
+  async startSprint(sprintId: string, projectId: string, userId: string) {
+    await this.checkProjectMembership(userId, projectId);
 
-    if (result.affected && result.affected > 0) {
-      return 'Delete successfully';
-    } else {
-      throw new AppException(ErrorCode.DELETE_FAIL);
+    // Ensure no other sprint is active
+    const activeSprint = await this.sprintRepo.findOne({ where: { project: { id: projectId }, status: SprintStatus.ACTIVE } });
+    if (activeSprint) {
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
+
+    const sprint = await this.findOne(sprintId, projectId, userId);
+    if (sprint.status !== SprintStatus.PLANNED) {
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
+
+    sprint.status = SprintStatus.ACTIVE;
+    return this.sprintRepo.save(sprint);
+  }
+
+  async completeSprint(sprintId: string, projectId: string, userId: string) {
+    const sprint = await this.findOne(sprintId, projectId, userId);
+    if (sprint.status !== SprintStatus.ACTIVE) {
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
+
+    // TODO: Handle unfinished tasks (move to backlog or next sprint)
+
+    sprint.status = SprintStatus.COMPLETED;
+    return this.sprintRepo.save(sprint);
   }
 }

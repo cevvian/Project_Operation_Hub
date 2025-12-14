@@ -7,6 +7,7 @@ import { Build } from './build.entity';
 import { Role } from './enum/role.enum';
 import { ProjectMember } from './project-member.entity';
 import { Attachment } from './attachment.entity';
+import { TaskComment } from './task-comment.entity';
 
 
 @Entity({ name: 'users' })
@@ -50,6 +51,9 @@ export class User {
 
     @OneToMany(() => Task, (task) => task.reporter)
     reportedTasks: Task[];
+
+    @OneToMany(() => TaskComment, (comment) => comment.author)
+    authoredComments: TaskComment[];
 
     @OneToMany(() => Commit, (commit) => commit.author)
     commits: Commit[];

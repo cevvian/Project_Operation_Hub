@@ -1,63 +1,64 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { ChangeStatusDto } from './dto/change-status.dto';
-import { AssignDto } from './dto/assign.dto';
-import { AddToSprintDto } from './dto/add-to-sprint.dto';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/guard/auth.guard';
+import { User } from '../auth/decorator/user.decorator';
+import { MoveTaskDto } from './dto/move-task.dto';
 
-@Controller('tasks')
+@ApiTags('Tasks')
+@UseGuards(AuthGuard)
+@Controller('projects/:projectId/tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  @Patch(':id/change-status')
-  @ApiOperation({ summary: 'Change task status' })
-  changeStatus(@Param('id') id: string, @Body() dto: ChangeStatusDto) {
-    return this.tasksService.changeStatus(id, dto.status);
-  }
-
-  @Patch(':id/assign')
-  @ApiOperation({ summary: 'Assign a user to task' })
-  assignTask(@Param('id') id: string, @Body() dto: AssignDto) {
-    return this.tasksService.assignTask(id, dto.userId);
-  }
-
-  @Patch(':id/add-to-sprint')
-  @ApiOperation({ summary: 'Add task to a sprint' })
-  addToSprint(@Param('id') id: string, @Body() dto: AddToSprintDto) {
-    return this.tasksService.addToSprint(id, dto.sprintId);
-  }
-  
   @Post()
-  @ApiOperation({ summary: 'Create new task' })
-  create(@Body() dto: CreateTaskDto) {
-    return this.tasksService.create(dto);
+  @ApiOperation({ summary: 'Create a new task' })
+  create(@Param('projectId') projectId: string, @Body() createTaskDto: CreateTaskDto, @User('sub') userId: string) {
+    return this.tasksService.create({ ...createTaskDto, projectId }, userId);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all tasks with pagination' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.tasksService.findAll(Number(page), Number(limit));
+  @ApiOperation({ summary: 'Find all tasks for a project' })
+  findByProject(@Param('projectId') projectId: string, @User('sub') userId: string) {
+    // TODO: Add filters via @Query()
+    return this.tasksService.findByProject(projectId, userId);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get task by ID' })
-  findOne(@Param('id') id: string) {
-    return this.tasksService.findOne(id);
+  @Get(':taskId')
+  @ApiOperation({ summary: 'Get a single task by ID' })
+  findOne(@Param('projectId') projectId: string, @Param('taskId') taskId: string, @User('sub') userId: string) {
+    return this.tasksService.findOne(taskId, projectId, userId);
   }
 
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update task' })
-  update(@Param('id') id: string, @Body() dto: UpdateTaskDto) {
-    return this.tasksService.update(id, dto);
+  @Patch(':taskId')
+  @ApiOperation({ summary: 'Update a task' })
+  update(
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @User('sub') userId: string,
+  ) {
+    return this.tasksService.update(taskId, projectId, userId, updateTaskDto);
   }
 
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete task' })
-  remove(@Param('id') id: string) {
-    return this.tasksService.remove(id);
+  @Delete(':taskId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a task' })
+  remove(@Param('projectId') projectId: string, @Param('taskId') taskId: string, @User('sub') userId: string) {
+    return this.tasksService.remove(taskId, projectId, userId);
+  }
+
+  @Post(':taskId/move')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Move a task between sprints/statuses or reorder' })
+  move(
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+    @Body() moveTaskDto: MoveTaskDto,
+    @User('sub') userId: string,
+  ) {
+    return this.tasksService.move(taskId, projectId, userId, moveTaskDto);
   }
 }

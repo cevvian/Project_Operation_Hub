@@ -19,7 +19,7 @@ export class Commit {
   @ManyToOne(() => User, (user) => user.commits, { onDelete: 'SET NULL' })
   author: User;
 
-  @ManyToOne(() => Task, task => task.commits)
+  @ManyToOne(() => Task, { nullable: true, onDelete: 'SET NULL' })
   task: Task;
 
   @Column({ type: 'text' })

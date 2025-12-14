@@ -10,7 +10,7 @@ export class Branch {
   @Column()
   name: string;
 
-  @ManyToOne(() => Task, task => task.branches)
+  @ManyToOne(() => Task, { nullable: true, onDelete: 'SET NULL' })
   task: Task;
 
   @ManyToOne(() => Repo, repo => repo.branches)

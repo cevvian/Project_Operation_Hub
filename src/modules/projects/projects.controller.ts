@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { Public } from '../auth/guard/auth.guard';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Public, AuthGuard } from '../auth/guard/auth.guard';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -8,6 +8,7 @@ import { InviteProjectMemberDto } from './dto/invite-project-member.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { User } from '../auth/decorator/user.decorator';
 
+@UseGuards(AuthGuard)
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
@@ -68,6 +69,13 @@ export class ProjectsController {
     @User('sub') requestingUserId: string,
   ) {
     return this.projectsService.removeMember(projectId, userId, requestingUserId);
+  }
+
+  @Get(':projectId/members')
+  @ApiOperation({ summary: 'Get all members of a project' })
+  @ApiParam({ name: 'projectId', description: 'Project ID' })
+  getProjectMembers(@Param('projectId') projectId: string) {
+    return this.projectsService.getProjectMembers(projectId);
   }
 
   @Get()

@@ -8,18 +8,31 @@ export class CloudinaryService {
   ) {}
 
   async uploadFile(file: Express.Multer.File) {
-    const result = await this.cloudinaryClient.cloudinary.uploader.upload(file.path, {
+    const options = {
       folder: 'attachments',
       public_id: `${Date.now()}-${file.originalname}`,
-      resource_type: 'auto',
-    });
+      resource_type: 'auto' as const,
+    };
 
-    return result; // chứa url, public_id, format, size, ...
+    // If multer stored a temp file on disk (has path)
+    if ((file as any).path) {
+      const result = await this.cloudinaryClient.cloudinary.uploader.upload((file as any).path, options);
+      return result;
+    }
+
+    // Otherwise, upload from buffer via stream
+    return await new Promise((resolve, reject) => {
+      const uploadStream = this.cloudinaryClient.cloudinary.uploader.upload_stream(options, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
+      uploadStream.end(file.buffer);
+    });
   }
 
   async deleteFile(publicId: string) {
     if (!publicId) return null;
-    const result = await this.cloudinaryClient.cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+    const result = await this.cloudinaryClient.cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
     return result;
   }
 }

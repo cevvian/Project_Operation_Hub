@@ -1,42 +1,29 @@
-import { IsString, IsUUID, IsNotEmpty, IsDateString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsUUID, IsNotEmpty, IsDateString, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSprintDto {
-  @ApiProperty({
-    description: 'ID của project mà sprint thuộc về',
-    type: 'string',
-    format: 'uuid',
-  })
+  @ApiProperty({ description: 'ID of the project this sprint belongs to' })
   @IsUUID()
   @IsNotEmpty()
   projectId: string;
 
-  @ApiProperty({
-    description: 'Tên sprint',
-    type: 'string',
-    example: 'Sprint 1',
-  })
+  @ApiProperty({ description: 'Name of the sprint' })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({
-    description: 'Ngày bắt đầu sprint',
-    type: 'string',
-    format: 'date',
-    example: '2025-11-27',
-  })
-  @IsDateString()
-  @IsNotEmpty()
-  start_date: string;
+  @ApiPropertyOptional({ description: 'The goal of the sprint' })
+  @IsOptional()
+  @IsString()
+  goal?: string;
 
-  @ApiProperty({
-    description: 'Ngày kết thúc sprint',
-    type: 'string',
-    format: 'date',
-    example: '2025-12-04',
-  })
+  @ApiPropertyOptional({ description: 'Sprint start date' })
+  @IsOptional()
   @IsDateString()
-  @IsNotEmpty()
-  end_date: string;
+  startDate?: string;
+
+  @ApiPropertyOptional({ description: 'Sprint end date' })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
 }

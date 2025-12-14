@@ -37,7 +37,7 @@ export class BranchService {
       throw new AppException(ErrorCode.REPO_NOT_FOUND);
     }
 
-    const name = `feature/${task.key}-${task.name.replace(/\s+/g, '-')}`;
+    const name = `feature/${task.key}-${task.title.replace(/\s+/g, '-')}`;
     const githubBranch = await this.githubService.createBranch(repo.name, name);
 
     const branch = await this.branchRepo.create({

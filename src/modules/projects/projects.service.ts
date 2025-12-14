@@ -81,7 +81,16 @@ export class ProjectsService {
       keyPrefix: dto.keyPrefix
     });
 
-    return await this.projectRepo.save(project);
+    const savedProject = await this.projectRepo.save(project);
+
+    // Add owner as a project member
+    const projectMember = this.projectMemberRepo.create({
+      project: savedProject,
+      user: owner,
+    });
+    await this.projectMemberRepo.save(projectMember);
+
+    return savedProject;
   }
 
   async inviteMembers(projectId: string, dto: InviteProjectMemberDto, requestingUserId: string) {
@@ -299,6 +308,32 @@ export class ProjectsService {
     }
 
     return { message: 'Member removed successfully' };
+  }
+
+  async getProjectMembers(projectId: string) {
+    const project = await this._findProjectById(projectId);
+    // Use a Set to prevent duplicates if the owner is also in the members list
+    const memberMap = new Map<string, { id: string; name: string; email: string }>();
+
+    // Add all active members
+    project.members.forEach((member) => {
+      memberMap.set(member.user.id, {
+        id: member.user.id,
+        name: member.user.name,
+        email: member.user.email,
+      });
+    });
+
+    // Ensure the owner is included
+    if (project.owner) {
+      memberMap.set(project.owner.id, {
+        id: project.owner.id,
+        name: project.owner.name,
+        email: project.owner.email,
+      });
+    }
+
+    return Array.from(memberMap.values());
   }
 
   async searchUsersToInvite(projectId: string, query: string) {

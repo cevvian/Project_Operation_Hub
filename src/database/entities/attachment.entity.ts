@@ -7,7 +7,7 @@ export class Attachment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Task, (task) => task.attachments, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Task, { onDelete: 'CASCADE' })
   task: Task;
 
   @Column()

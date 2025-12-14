@@ -1,4 +1,7 @@
 import { Controller, Get, Post, Body, Param, Delete, Patch, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { CurrentUser } from '../auth/decorator/current-user.decorator';
+import { AppException } from 'src/exceptions/app.exception';
+import { ErrorCode } from 'src/exceptions/error-code';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { AttachmentsService } from './attachments.service';
 import { CreateAttachmentDto } from './dto/create-attachment.dto';
@@ -12,17 +15,23 @@ export class AttachmentsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new attachment' })
+  @UseInterceptors(FileInterceptor('file')) // Must be before ApiConsumes/ApiBody
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'File to upload along with attachment info',
     type: CreateAttachmentDto,
   })
-  @UseInterceptors(FileInterceptor('file'))
-  create(
+  async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateAttachmentDto,
+    @CurrentUser() user: any,
   ) {
-    return this.attachmentsService.create(file, dto);
+    if (!file) {
+      // This check is crucial. If FileInterceptor doesn't find a file, it might not throw.
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
+    // Pass the entire file object, including the buffer, to the service.
+    return this.attachmentsService.create(file, dto, user.sub);
   }
 
   @Get()

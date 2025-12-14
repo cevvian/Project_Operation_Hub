@@ -1,65 +1,49 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { TaskCommentsService } from './task-comments.service';
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
-import { ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/guard/auth.guard';
+import { User } from '../auth/decorator/user.decorator';
 
-@Controller('task-comments')
+@ApiTags('Task Comments')
+@UseGuards(AuthGuard)
+@Controller('projects/:projectId/tasks/:taskId/comments')
 export class TaskCommentsController {
   constructor(private readonly taskCommentsService: TaskCommentsService) {}
 
-  // @UseGuards(JwtAuthGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new comment for a task' })
-  create(@Body() dto: CreateTaskCommentDto, /*@Req() req*/) {
-    return this.taskCommentsService.create(dto /*req.user*/);
-  }
-  
-  @Get('task/:taskId')
-  @ApiOperation({ summary: 'Get all comments of a specific task' })
-  @ApiParam({ name: 'taskId', description: 'ID of the task' })
-  findByTask(@Param('taskId') taskId: string) {
-    return this.taskCommentsService.findByTask(taskId);
-  }
-
-  @Get('task/:taskId/count')
-  @ApiOperation({ summary: 'Count all comments of a task' })
-  @ApiParam({ name: 'taskId', description: 'ID of the task' })
-  countByTask(@Param('taskId') taskId: string) {
-    return this.taskCommentsService.countByTask(taskId);
+  create(
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+    @Body() createTaskCommentDto: CreateTaskCommentDto,
+    @User('sub') userId: string,
+  ) {
+    return this.taskCommentsService.create(projectId, { ...createTaskCommentDto, taskId }, userId);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all comments with pagination' })
-  @ApiQuery({ name: 'page', required: false, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, example: 10 })
-  findAll(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-  ) {
-    return this.taskCommentsService.findAll(+page, +limit);
+  @ApiOperation({ summary: 'Get all comments for a specific task' })
+  findByTask(@Param('projectId') projectId: string, @Param('taskId') taskId: string, @User('sub') userId: string) {
+    return this.taskCommentsService.findByTask(projectId, taskId, userId);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a specific comment by ID' })
-  @ApiParam({ name: 'id', description: 'Comment ID' })
-  findOne(@Param('id') id: string) {
-    return this.taskCommentsService.findOne(id);
-  }
-
-  // @UseGuards(JwtAuthGuard)
-  @Patch(':id')
+  @Patch(':commentId')
   @ApiOperation({ summary: 'Update a comment' })
-  @ApiParam({ name: 'id', description: 'Comment ID' })
-  update( @Param('id') id: string, @Body() dto: UpdateTaskCommentDto, ) {
-    return this.taskCommentsService.update(id, dto);
+  update(
+    @Param('projectId') projectId: string,
+    @Param('commentId') commentId: string,
+    @Body() updateTaskCommentDto: UpdateTaskCommentDto,
+    @User('sub') userId: string,
+  ) {
+    return this.taskCommentsService.update(projectId, commentId, updateTaskCommentDto, userId);
   }
 
-  // @UseGuards(JwtAuthGuard)
-  @Delete(':id')
+  @Delete(':commentId')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a comment' })
-  @ApiParam({ name: 'id', description: 'Comment ID' })
-  remove(@Param('id') id: string) {
-    return this.taskCommentsService.remove(id);
+  remove(@Param('projectId') projectId: string, @Param('commentId') commentId: string, @User('sub') userId: string) {
+    return this.taskCommentsService.remove(projectId, commentId, userId);
   }
 }

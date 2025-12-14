@@ -1,46 +1,80 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseBoolPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { SprintsService } from './sprints.service';
 import { CreateSprintDto } from './dto/create-sprint.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { ApiTags, ApiOperation, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/guard/auth.guard';
+import { User } from '../auth/decorator/user.decorator';
 
 @ApiTags('Sprints')
-@Controller('sprints')
+@UseGuards(AuthGuard)
+@Controller('projects/:projectId/sprints')
 export class SprintsController {
   constructor(private readonly sprintsService: SprintsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Tạo mới một sprint' })
-  async create(@Body() createSprintDto: CreateSprintDto) {
-    return this.sprintsService.create(createSprintDto);
+  @ApiOperation({ summary: 'Create a new sprint within a project' })
+  create(@Param('projectId') projectId: string, @Body() createSprintDto: CreateSprintDto, @User('sub') userId: string) {
+    return this.sprintsService.create({ ...createSprintDto, projectId }, userId);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách tất cả sprint với paging' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  async findAll(@Query('page') page?: number, @Query('limit') limit?: number) {
-    return this.sprintsService.findAll(Number(page) || 1, Number(limit) || 10);
+  @ApiOperation({ summary: 'Find all sprints for a project' })
+  @ApiQuery({ name: 'includeTasks', required: false, type: Boolean, description: 'Set to true to include tasks in the response' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'Comma-separated statuses, e.g. PLANNED,ACTIVE,COMPLETED' })
+  @ApiQuery({ name: 'startFrom', required: false, type: String, description: 'ISO date, filter startDate >= startFrom' })
+  @ApiQuery({ name: 'startTo', required: false, type: String, description: 'ISO date, filter startDate <= startTo' })
+  @ApiQuery({ name: 'endFrom', required: false, type: String, description: 'ISO date, filter endDate >= endFrom' })
+  @ApiQuery({ name: 'endTo', required: false, type: String, description: 'ISO date, filter endDate <= endTo' })
+  findByProject(
+    @Param('projectId') projectId: string,
+    @User('sub') userId: string,
+    @Query('includeTasks', new ParseBoolPipe({ optional: true })) includeTasks?: boolean,
+    @Query('status') statusCsv?: string,
+    @Query('startFrom') startFrom?: string,
+    @Query('startTo') startTo?: string,
+    @Query('endFrom') endFrom?: string,
+    @Query('endTo') endTo?: string,
+  ) {
+    const statuses = statusCsv?.split(',').map(s => s.trim()).filter(Boolean);
+    return this.sprintsService.findByProject(projectId, userId, includeTasks, { statuses, startFrom, startTo, endFrom, endTo });
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Lấy thông tin chi tiết một sprint theo ID' })
-  @ApiParam({ name: 'id', type: 'string' })
-  async findOne(@Param('id') id: string) {
-    return this.sprintsService.findOne(id);
+  @Get(':sprintId')
+  @ApiOperation({ summary: 'Get a single sprint by ID' })
+  findOne(@Param('projectId') projectId: string, @Param('sprintId') sprintId: string, @User('sub') userId: string) {
+    return this.sprintsService.findOne(sprintId, projectId, userId);
   }
 
-  @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật thông tin một sprint' })
-  @ApiParam({ name: 'id', type: 'string' })
-  async update(@Param('id') id: string, @Body() updateSprintDto: UpdateSprintDto) {
-    return this.sprintsService.update(id, updateSprintDto);
+  @Patch(':sprintId')
+  @ApiOperation({ summary: 'Update a sprint' })
+  update(
+    @Param('projectId') projectId: string,
+    @Param('sprintId') sprintId: string,
+    @Body() updateSprintDto: UpdateSprintDto,
+    @User('sub') userId: string,
+  ) {
+    return this.sprintsService.update(sprintId, projectId, userId, updateSprintDto);
   }
 
-  @Delete(':id')
-  @ApiOperation({ summary: 'Xóa một sprint theo ID' })
-  @ApiParam({ name: 'id', type: 'string' })
-  async remove(@Param('id') id: string) {
-    return this.sprintsService.remove(id);
+  @Delete(':sprintId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a sprint' })
+  remove(@Param('projectId') projectId: string, @Param('sprintId') sprintId: string, @User('sub') userId: string) {
+    return this.sprintsService.remove(sprintId, projectId, userId);
+  }
+
+  @Post(':sprintId/start')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Start a sprint' })
+  startSprint(@Param('projectId') projectId: string, @Param('sprintId') sprintId: string, @User('sub') userId: string) {
+    return this.sprintsService.startSprint(sprintId, projectId, userId);
+  }
+
+  @Post(':sprintId/complete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete a sprint' })
+  completeSprint(@Param('projectId') projectId: string, @Param('sprintId') sprintId: string, @User('sub') userId: string) {
+    return this.sprintsService.completeSprint(sprintId, projectId, userId);
   }
 }

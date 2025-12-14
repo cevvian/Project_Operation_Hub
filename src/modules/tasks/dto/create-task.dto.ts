@@ -1,62 +1,61 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsString, IsOptional, IsEnum, IsNotEmpty } from 'class-validator';
+import { IsString, IsUUID, IsNotEmpty, IsOptional, IsEnum, IsNumber, IsDateString } from 'class-validator';
 import { TaskStatus } from 'src/database/entities/enum/task-status.enum';
+import { TaskPriority } from 'src/database/entities/enum/task-priority.enum';
 
 export class CreateTaskDto {
-  @ApiProperty({
-    example: 'uuid-project',
-    description: 'The ID of the project this task belongs to',
-  })
+  @ApiProperty()
   @IsUUID()
   @IsNotEmpty()
   projectId: string;
 
-  @ApiPropertyOptional({
-    example: 'uuid-sprint',
-    description: 'The ID of the sprint if this task is included in a sprint',
-  })
-  @IsUUID()
-  @IsOptional()
-  sprintId?: string;
-
-  @ApiProperty({
-    example: 'Fix login bug',
-    description: 'The name/title of the task',
-  })
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  name: string;
+  title: string;
 
-  @ApiPropertyOptional({
-    example: 'The issue occurs when the user tries to log in',
-    description: 'A detailed description of the task',
-  })
-  @IsString()
+  @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
   description?: string;
 
-  @ApiPropertyOptional({
-    example: 'uuid-user',
-    description: 'The ID of the user assigned to this task',
-  })
-  @IsUUID()
+  @ApiPropertyOptional({ enum: TaskStatus, default: TaskStatus.TODO })
   @IsOptional()
+  @IsEnum(TaskStatus)
+  status?: TaskStatus;
+
+  @ApiPropertyOptional({ enum: TaskPriority, default: TaskPriority.MEDIUM })
+  @IsOptional()
+  @IsEnum(TaskPriority)
+  priority?: TaskPriority;
+
+  @ApiPropertyOptional({ description: 'Assign task to a sprint. If null, it goes to the backlog.' })
+  @IsOptional()
+  @IsUUID()
+  sprintId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
   assigneeId?: string;
 
-  @ApiProperty({
-    example: 'uuid-user',
-    description: 'The ID of the user who created/reported the task',
-  })
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  @IsNotEmpty()
-  reporterId: string;
+  parentTaskId?: string;
 
-  @ApiProperty({
-    enum: TaskStatus,
-    example: TaskStatus.TODO,
-    description: 'The initial status of the task',
-  })
-  @IsEnum(TaskStatus)
-  @IsNotEmpty()
-  status: TaskStatus;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  storyPoints?: number;
+
+  @ApiPropertyOptional({ description: 'Task start date' })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiPropertyOptional({ description: 'Task due date' })
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
 }
