@@ -7,7 +7,7 @@ export class PendingProjectInvitation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Project, { nullable: false })
+  @ManyToOne(() => Project, { nullable: false, onDelete: 'CASCADE' })
   project: Project;
 
   @Column()
