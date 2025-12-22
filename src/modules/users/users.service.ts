@@ -16,11 +16,11 @@ export class UsersService {
     private readonly userRepo: Repository<User>,
 
     private readonly githubService: GithubService,
-  ){}
+  ) { }
 
   async create(createUserDto: CreateUserDto) {
     const existing = await this.userRepo.findOne({
-      where: {email: createUserDto.email}
+      where: { email: createUserDto.email }
     })
 
     if (existing) {
@@ -37,7 +37,7 @@ export class UsersService {
     return await this.userRepo.save(user)
   }
 
-  async validate(email: string, password: string){
+  async validate(email: string, password: string) {
     const user = await this.findUserByEmail(email)
 
     if (!user.isVerified) {
@@ -46,19 +46,19 @@ export class UsersService {
 
     const isCorrectPassword = await bcrypt.compare(password, user.password)
     if (!isCorrectPassword) {
-        throw new UnauthorizedException('Password not correct')
+      throw new UnauthorizedException('Password not correct')
     }
 
     return user;
   }
 
-  async verifyAccount(userId: string){
+  async verifyAccount(userId: string) {
     const user = await this.findOne(userId)
     user.isVerified = true
     return await this.userRepo.save(user)
   }
 
-  async findUsers(userIds: string[]){
+  async findUsers(userIds: string[]) {
     const users = await this.userRepo.find({
       where: { id: In(userIds) },
     });
@@ -83,7 +83,7 @@ export class UsersService {
     return await this.userRepo.save(user);
   }
 
-  async createGitHubToken(token: string, userId: string){
+  async createGitHubToken(token: string, userId: string) {
     const user = await this.findOne(userId)
     user.githubToken = token
     return await this.userRepo.save(user)
@@ -106,21 +106,21 @@ export class UsersService {
 
   async findOne(id: string) {
     const user = await this.userRepo.findOne({
-      where: {id: id} ,
+      where: { id: id },
     })
 
-    if(!user)
+    if (!user)
       throw new AppException(ErrorCode.USER_NOT_EXISTED);
 
     return user;
   }
 
-  async findUserByEmail(email: string){
+  async findUserByEmail(email: string) {
     const user = await this.userRepo.findOne({
-      where: {email: email}
+      where: { email: email }
     })
 
-    if(!user)
+    if (!user)
       throw new AppException(ErrorCode.USER_NOT_EXISTED)
 
     return user
@@ -135,7 +135,7 @@ export class UsersService {
     if (updateUserDto.name && updateUserDto !== user.name) {
       await this.checkExistedProperty(updateUserDto.name);
     }
-    if(updateUserDto.password){
+    if (updateUserDto.password) {
       user.password = await bcrypt.hash(updateUserDto.password, 10)
     }
 
@@ -168,23 +168,45 @@ export class UsersService {
     }
   }
 
-  private async checkExistedProperty(email?:string, username?:string){
-    if(email){
+  private async checkExistedProperty(email?: string, username?: string) {
+    if (email) {
       const existing = await this.userRepo.findOne({
-        where: {email: email}
+        where: { email: email }
       })
 
-      if(existing)
+      if (existing)
         throw new AppException(ErrorCode.USER_EMAIL_EXISTED)
     }
 
-    if(username){
+    if (username) {
       const existing = await this.userRepo.findOne({
-        where: {name: username}
+        where: { name: username }
       })
 
-      if(existing)
+      if (existing)
         throw new AppException(ErrorCode.USER_USERNAME_EXISTED)
     }
+  }
+
+  /**
+   * Get all user IDs (for broadcast targeting)
+   */
+  async getAllUserIds(): Promise<string[]> {
+    const users = await this.userRepo.find({ select: ['id'] });
+    return users.map(u => u.id);
+  }
+
+  /**
+   * Get all admin user IDs (for targeted broadcasts)
+   */
+  async getAdminUserIds(): Promise<string[]> {
+    const admins = await this.userRepo.find({
+      where: [
+        { role: 'ADMIN' as any },
+        { role: 'SUPER_ADMIN' as any },
+      ],
+      select: ['id'],
+    });
+    return admins.map(a => a.id);
   }
 }

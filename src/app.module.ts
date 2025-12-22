@@ -20,6 +20,8 @@ import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { RolesGuard } from './modules/auth/guard/role.guard';
 import { ApplicationInitModule } from './modules/init/application-init.module';
 import { TestCaseModule } from './modules/test-case/test-case.module';
+import { EventsModule } from './events/events.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -76,6 +78,8 @@ import { TestCaseModule } from './modules/test-case/test-case.module';
     AuthModule,
     ApplicationInitModule,
     TestCaseModule,
+    EventsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
