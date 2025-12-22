@@ -4,6 +4,7 @@ import { CreateRepoDto } from './dto/create-repo.dto';
 import { UpdateRepoDto } from './dto/update-repo.dto';
 import { ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorator/current-user.decorator';
+import { User } from '../auth/decorator/user.decorator';
 
 @Controller('repos')
 export class ReposController {
@@ -11,8 +12,8 @@ export class ReposController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new repository for a project' })
-  create(@Body() createRepoDto: CreateRepoDto, @CurrentUser() user) {
-    return this.reposService.create(createRepoDto, user);
+  create(@Body() createRepoDto: CreateRepoDto, @User('sub') requestingUserId: string) {
+    return this.reposService.create(createRepoDto, requestingUserId);
   }
 
   @Get()

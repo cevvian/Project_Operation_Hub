@@ -153,5 +153,63 @@ export class AuthService {
 
     await this.emailService.sendVerificationEmail(user.email, user.name, token);
   }
+
+  async loginWithGithub(userFromGithub: any) {
+    if (!userFromGithub.email) {
+      throw new AppException(ErrorCode.GITHUB_UNAUTHORIZED);
+    }
+
+    let user = await this.userService.findUserByGithubName(userFromGithub.githubName);
+
+    if (!user) {
+      // If user does not exist, create a new one
+      user = await this.userService.create({
+        email: userFromGithub.email,
+        name: userFromGithub.name,
+        githubName: userFromGithub.githubName,
+        avatar: userFromGithub.avatar,
+        isVerified: true, // Automatically verify users from social logins
+      });
+    } else {
+      // If user exists, update their info just in case it changed
+      await this.userService.update(user.id, {
+        name: userFromGithub.name,
+        avatar: userFromGithub.avatar,
+      });
+    }
+
+    // Generate tokens and return them
+    const { accessToken, refreshToken } = await this.generateToken(user);
+    return { accessToken, refreshToken };
+  }
+
+  async loginWithGoogle(userFromGoogle: any) {
+    if (!userFromGoogle.email) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
+
+    let user = await this.userService.findUserByGoogleId(userFromGoogle.googleId);
+
+    if (!user) {
+      // If user does not exist, create a new one
+      user = await this.userService.create({
+        email: userFromGoogle.email,
+        name: userFromGoogle.name,
+        googleId: userFromGoogle.googleId,
+        avatar: userFromGoogle.avatar,
+        isVerified: true, // Automatically verify users from social logins
+      });
+    } else {
+      // If user exists, update their info
+      await this.userService.update(user.id, {
+        name: userFromGoogle.name,
+        avatar: userFromGoogle.avatar,
+      });
+    }
+
+    // Generate tokens and return them
+    const { accessToken, refreshToken } = await this.generateToken(user);
+    return { accessToken, refreshToken };
+  }
 }
 

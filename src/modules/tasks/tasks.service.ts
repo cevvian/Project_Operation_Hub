@@ -142,6 +142,21 @@ export class TasksService {
     return this.taskRepo.save(task);
   }
 
+  async updateStatus(taskId: string, newStatus: TaskStatus) {
+    const task = await this.taskRepo.findOne({ where: { id: taskId } });
+    if (!task) {
+      throw new AppException(ErrorCode.TASK_NOT_FOUND);
+    }
+
+    // You might want to add transition validation here if needed
+    // if (!canTransition(task.status, newStatus)) {
+    //   throw new AppException(ErrorCode.INVALID_TASK_STATUS_TRANSITION);
+    // }
+
+    task.status = newStatus;
+    return this.taskRepo.save(task);
+  }
+
   async remove(taskId: string, projectId: string, userId: string) {
     await this.checkProjectMembership(userId, projectId);
     const task = await this.getTask(taskId, projectId);

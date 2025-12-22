@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CreateRepoDto } from './dto/create-repo.dto';
 import { UpdateRepoDto } from './dto/update-repo.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repo } from 'src/database/entities/repo.entity';
 import { Repository } from 'typeorm';
 import { Project } from 'src/database/entities/project.entity';
+import { User } from 'src/database/entities/user.entity';
 import { ErrorCode } from 'src/exceptions/error-code';
 import { AppException } from 'src/exceptions/app.exception';
 import { GithubService } from '../github/github.service';
 import { GithubWebhookService } from '../github/github-webhook.service';
-import { User } from 'src/database/entities/user.entity';
+
 
 @Injectable()
 export class ReposService {
@@ -20,45 +22,68 @@ export class ReposService {
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
 
-    // @InjectRepository(User)
-    // private readonly userRepository: Repository<User>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
 
     private readonly githubService: GithubService,
-    private readonly webhookService: GithubWebhookService
+    private readonly webhookService: GithubWebhookService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async create(createRepoDto: CreateRepoDto,  user: User) {
-    // const user = await this.userRepository.findOne(user)
-    const repo = this.repoRepository.create({
-      name: createRepoDto.name,
-      githubUrl: createRepoDto.githubUrl
-    });
+  async create(createRepoDto: CreateRepoDto, userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new AppException(ErrorCode.USER_NOT_EXISTED);
+    }
 
     const project = await this.projectRepository.findOne({
       where: { id: createRepoDto.projectId },
     });
 
     if (!project) {
-      throw new AppException(ErrorCode.PROJECT_NOT_FOUND)
+      throw new AppException(ErrorCode.PROJECT_NOT_FOUND);
     }
-    repo.project = project
 
-    const response = await this.githubService.createRepo(repo.name)
-    repo.fullName = response.full_name
-    repo.githubId = response.id
-    repo.defaultBranch = response.default_branch
-    repo.githubUrl = response.html_url
-    repo.owner = response.owner.login
-    
-    const webhookUrl = 'https://localhost:4000/webhooks/'
-    const webhookSecret = 'aowdhqwoifhwe'
-    if (!webhookUrl || !webhookSecret) {
-      throw new AppException(ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID)
+    // Generate repo name based on project key and repo name
+    const repoName = `${project.keyPrefix}-${createRepoDto.name}`;
+
+    // Create repo on GitHub
+    const githubRepo = await this.githubService.createRepo(
+      repoName,
+      createRepoDto.isPrivate,
+      userId,
+
+      createRepoDto.description,
+    );
+
+    // Create and save repo entity in DB
+    const repo = this.repoRepository.create({
+      project,
+      createdBy: user,
+      name: createRepoDto.name, // Save the short name
+      fullName: githubRepo.full_name,
+      githubId: githubRepo.id,
+      defaultBranch: githubRepo.default_branch,
+      githubUrl: githubRepo.html_url,
+      owner: githubRepo.owner.login,
+      isPrivate: createRepoDto.isPrivate,
+      webhookSecret: createRepoDto.webhookSecret, // Save the secret
+    });
+
+    const webhookUrl = this.configService.get<string>('WEBHOOK_BASE_URL');
+    if (!webhookUrl) {
+      throw new AppException(ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID);
     }
-    const webhook = await this.webhookService.createWehookRepo(response.name, webhookUrl, webhookSecret)
-    repo.webhookId = webhook.id
 
-    return this.repoRepository.save(repo)
+    const webhook = await this.webhookService.createWehookRepo(
+      repoName,
+      webhookUrl,
+      createRepoDto.webhookSecret, // Use the secret from DTO
+      userId,
+    );
+    repo.webhookId = webhook.id;
+
+    return this.repoRepository.save(repo);
   }
 
   async findAll(page: number, limit: number) {
@@ -101,7 +126,6 @@ export class ReposService {
 
     Object.assign(repo, {
       name: dto.name || repo.name,
-      githubUrl: dto.githubUrl || repo.githubUrl,
     });
 
     return await this.repoRepository.save(repo);

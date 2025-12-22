@@ -16,8 +16,8 @@ export class ProjectsController {
   @Post()
   @ApiOperation({ summary: 'Create a new project' })
   @ApiResponse({ status: 201, description: 'Project created successfully.' })
-  async create(@Body() createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(createProjectDto);
+  async create(@Body() createProjectDto: CreateProjectDto, @User('sub') requestingUserId: string) {
+    return this.projectsService.create(createProjectDto, requestingUserId);
   }
 
   @Post(':id/invite')

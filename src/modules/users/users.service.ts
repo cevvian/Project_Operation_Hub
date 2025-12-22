@@ -18,23 +18,21 @@ export class UsersService {
     private readonly githubService: GithubService,
   ){}
 
-  async create(createUserDto: CreateUserDto) {
-    const existing = await this.userRepo.findOne({
-      where: {email: createUserDto.email}
-    })
-
-    if (existing) {
-      return existing
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const existingUser = await this.userRepo.findOne({ where: { email: createUserDto.email } });
+    if (existingUser) {
+      // Instead of returning, throw an error to be more explicit.
+      // throw new AppException(ErrorCode.USER_EMAIL_EXISTED);
+      return existingUser;
     }
 
-    const user = await this.userRepo.create({
-      email: createUserDto.email,
-      name: createUserDto.name,
-      password: await bcrypt.hash(createUserDto.password, 10),
-      githubToken: createUserDto.github_token,
-    })
+    const user = this.userRepo.create({
+      ...createUserDto,
+      password: createUserDto.password ? await bcrypt.hash(createUserDto.password, 10) : undefined,
+      isVerified: false,
+    });
 
-    return await this.userRepo.save(user)
+    return this.userRepo.save(user);
   }
 
   async validate(email: string, password: string){
@@ -126,6 +124,18 @@ export class UsersService {
     return user
   }
 
+  async findUserByGithubName(githubName: string): Promise<User | null> {
+    return this.userRepo.findOne({
+      where: { githubName: githubName },
+    });
+  }
+
+  async findUserByGoogleId(googleId: string): Promise<User | null> {
+    return this.userRepo.findOne({
+      where: { googleId: googleId },
+    });
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.findOne(id)
 
@@ -139,12 +149,11 @@ export class UsersService {
       user.password = await bcrypt.hash(updateUserDto.password, 10)
     }
 
-    Object.assign(user, {
-      email: updateUserDto.email || user.email,
-      name: updateUserDto.name || user.name,
-      githubToken: updateUserDto.github_token || user.githubToken,
-      platformRole: updateUserDto.platform_role || user.role
-    });
+    // Update fields from DTO
+    user.name = updateUserDto.name || user.name;
+    // user.avatar = updateUserDto.avatar || user.avatar;
+    user.githubToken = updateUserDto.github_token || user.githubToken;
+    user.role = updateUserDto.platform_role || user.role;
 
     return await this.userRepo.save(user)
   }
@@ -186,5 +195,17 @@ export class UsersService {
       if(existing)
         throw new AppException(ErrorCode.USER_USERNAME_EXISTED)
     }
+  }
+
+  async connectGithubAccount(userId: string, githubName: string): Promise<User> {
+    // Check if another user has already taken this GitHub name
+    const existingConnection = await this.findUserByGithubName(githubName);
+    if (existingConnection && existingConnection.id !== userId) {
+      throw new AppException(ErrorCode.GITHUB_USERNAME_NOT_FOUND)
+    }
+
+    const user = await this.findOne(userId);
+    user.githubName = githubName;
+    return this.userRepo.save(user);
   }
 }

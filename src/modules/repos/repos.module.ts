@@ -5,12 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Project } from 'src/database/entities/project.entity';
 import { Repo } from 'src/database/entities/repo.entity';
 import { GithubModule } from '../github/github.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Repo]),
     TypeOrmModule.forFeature([Project]),
-    GithubModule
+    GithubModule,
+    ConfigModule,
   ],
   controllers: [ReposController],
   providers: [ReposService],

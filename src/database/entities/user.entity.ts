@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn, } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Task } from './task.entity';
 import { Commit } from './commit.entity';
 import { PullRequest } from './pull-request.entity';
@@ -18,17 +18,23 @@ export class User {
     @Column({ unique: true })
     email: string;
 
-    @Column()
+    @Column({ nullable: true })
     password: string;
 
     @Column()
     name: string;
 
+    @Column({ nullable: true })
+    avatar: string;
+
     @Column({ name: 'github_token', nullable: true })
     githubToken: string;
 
-    @Column({ name: 'github_name', nullable: true })
+    @Column({ name: 'github_name', nullable: true, unique: true })
     githubName: string;
+
+    @Column({ name: 'google_id', nullable: true, unique: true })
+    googleId: string;
 
     @Column({
         name: 'role',

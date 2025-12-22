@@ -1,8 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { User } from '../auth/decorator/user.decorator';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { CreateGitHubTokenDto } from './dto/create-github-token.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -34,10 +37,10 @@ export class UsersController {
     return this.usersService.findAll(page,limit);
   }
 
-  @Post(':id/github-token')
-  @ApiOperation({summary: 'Create github token'})
-  createToken(@Param('id') id: string, @Body() token: string){
-    return this.usersService.createGitHubToken(token, id)
+  @Post('/github-token')
+  @ApiOperation({ summary: 'Create or update a user\'s GitHub token' })
+  createToken(@User('sub') requestingUserId: string, @Body() createGitHubTokenDto: CreateGitHubTokenDto) {
+    return this.usersService.createGitHubToken(createGitHubTokenDto.token, requestingUserId);
   }
 
   @Get('by-email')
@@ -62,5 +65,22 @@ export class UsersController {
   @ApiOperation({ summary: 'Delete a user' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Get('connect/github')
+  @UseGuards(AuthGuard('github'))
+  async connectGithubAccount(@User('sub') userId: string) {
+    // This endpoint starts the GitHub connection process for a logged-in user.
+    // The AuthGuard('github') will redirect to GitHub.
+  }
+
+  @Get('connect/github/callback')
+  @UseGuards(AuthGuard('github'))
+  async connectGithubAccountCallback(@User('sub') userId: string, @Req() req: any) {
+    // After GitHub callback, req.user contains the GitHub profile.
+    const githubProfile = req.user;
+    await this.usersService.connectGithubAccount(userId, githubProfile.githubName);
+    // You can redirect the user to a settings page or return a success message.
+    return { message: 'GitHub account connected successfully.' };
   }
 }

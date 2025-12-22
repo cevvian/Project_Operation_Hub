@@ -1,31 +1,38 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, } from 'typeorm';
-import { Project } from './project.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, OneToOne } from 'typeorm';
 import { User } from './user.entity';
 import { BuildStatus } from './enum/build-status.enum';
+import { Repo } from './repo.entity';
+import { Deployment } from './deployment.entity';
 
 @Entity('builds')
 export class Build {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Project, (project) => project.builds, {
-    onDelete: 'CASCADE',
-  })
-  project: Project;
+  @ManyToOne(() => Repo, { onDelete: 'CASCADE' })
+  repo: Repo;
 
-  @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  triggeredBy: User;
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  triggeredBy: User | null;
 
-  @Column({
-    type: 'enum',
-    enum: BuildStatus,
-    default: BuildStatus.RUNNING,
-  })
+  @Column({ type: 'enum', enum: BuildStatus, default: BuildStatus.PENDING })
   status: BuildStatus;
+
+  @Column()
+  commitHash: string;
+
+  @Column({ nullable: true })
+  jenkinsJobName: string;
+
+  @Column({ type: 'int', nullable: true })
+  jenkinsBuildNumber: number;
 
   @CreateDateColumn()
   startedAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   finishedAt: Date;
+
+  @OneToOne(() => Deployment, (deployment) => deployment.build)
+  deployment: Deployment;
 }

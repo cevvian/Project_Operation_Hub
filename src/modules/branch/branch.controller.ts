@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { User } from '../auth/decorator/user.decorator';
 import { BranchService } from './branch.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
@@ -11,8 +12,8 @@ export class BranchController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new branch' })
-  create(@Body() createBranchDto: CreateBranchDto) {
-    return this.branchService.create(createBranchDto);
+  create(@Body() createBranchDto: CreateBranchDto, @User('sub') userId: string) {
+    return this.branchService.create(createBranchDto, userId);
   }
 
   @Get()

@@ -1,8 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, OneToMany, UpdateDateColumn, } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, OneToMany, UpdateDateColumn } from 'typeorm';
 import { Sprint } from './sprint.entity';
 import { Repo } from './repo.entity';
 import { Environment } from './environment.entity';
-import { Build } from './build.entity';
 import { User } from './user.entity';
 import { ProjectMember } from './project-member.entity';
 import { PendingProjectInvitation } from './pending-project-invitation.entity';
@@ -37,8 +36,7 @@ export class Project {
   @OneToMany(() => Environment, (env) => env.project)
   environments: Environment[];
 
-  @OneToMany(() => Build, (b) => b.project)
-  builds: Build[];
+
 
 
   @OneToMany(() => PendingProjectInvitation, (invitation) => invitation.project)

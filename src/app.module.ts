@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -15,15 +16,20 @@ import { TaskCommentsModule } from './modules/task-comments/task-comments.module
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { BranchModule } from './modules/branch/branch.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, Reflector } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { RolesGuard } from './modules/auth/guard/role.guard';
 import { ApplicationInitModule } from './modules/init/application-init.module';
 import { TestCaseModule } from './modules/test-case/test-case.module';
+import { CommitModule } from './modules/commit/commit.module';
+import { PullRequestModule } from './modules/pull-request/pull-request.module';
+import { JenkinsModule } from './modules/jenkins/jenkins.module';
+import { BuildsModule } from './modules/builds/builds.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ 
+    ScheduleModule.forRoot(),
+    ConfigModule.forRoot({
       envFilePath: process.env.NODE_ENV === 'production'
         ? join(__dirname, '..', '.env') // production: file .env nằm cùng cấp dist
         : join(__dirname, '..', '.env'), // development: file .env nằm trong backend/
@@ -76,10 +82,15 @@ import { TestCaseModule } from './modules/test-case/test-case.module';
     AuthModule,
     ApplicationInitModule,
     TestCaseModule,
+    CommitModule,
+    PullRequestModule,
+    JenkinsModule,
+    BuildsModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    Reflector,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,

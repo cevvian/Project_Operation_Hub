@@ -1,5 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateRepoDto {
   @ApiProperty({
@@ -18,11 +23,38 @@ export class CreateRepoDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({
-    description: 'GitHub URL of the repository',
-    example: 'https://github.com/example/frontend-app',
+  @ApiPropertyOptional({
+    description: 'A short description of the repository',
+    example: 'This is the frontend application for Project X.',
   })
-  @IsUrl()
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({
+    description: 'Whether the repository should be private',
+    example: true,
+    default: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isPrivate = true;
+
+  @ApiProperty({
+    description: 'Gitignore template to use',
+    example: 'Node',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  gitignoreTemplate?: string;
+
+  @ApiProperty({
+    description: 'Secret for the webhook',
+    example: 'supersecretstring',
+    required: true,
+  })
+  @IsString()
   @IsNotEmpty()
-  githubUrl: string;
+  webhookSecret: string;
 }

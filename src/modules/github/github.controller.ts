@@ -1,55 +1,71 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Headers, Res } from '@nestjs/common';
+import { User } from '../auth/decorator/user.decorator';
 import { GithubService } from './github.service';
+import { GithubWebhookService } from './github-webhook.service'; // Import the new service
+import type { Response } from 'express';
+import { CreateRepoDto } from './dto/create-repo.dto'; // Import the new DTO
+import { Public } from '../auth/guard/auth.guard';
 
 @Controller('github')
 export class GithubController {
-  constructor(private readonly githubService: GithubService) {}
+  constructor(
+    private readonly githubService: GithubService,
+    private readonly githubWebhookService: GithubWebhookService, // Inject the service
+  ) {}
 
   @Post('repos')
-  async createRepo(@Body() dto: { name: string; description?: string }) {
-    return this.githubService.createRepo(dto.name, dto.description);
+  async createRepo(@Body() createRepoDto: CreateRepoDto, @User('sub') userId: string) {
+    // Default to true if isPrivate is not provided
+    const isPrivate = createRepoDto.isPrivate !== undefined ? createRepoDto.isPrivate : true;
+    return this.githubService.createRepo(createRepoDto.name, isPrivate, userId, createRepoDto.description);
   }
 
   @Post('branches')
-  async createBranch(@Body() dto: { repo: string; branchName: string; from?: string }) {
-    return this.githubService.createBranch(dto.repo, dto.branchName, dto.from);
+  async createBranch(@Body() dto: { repo: string; branchName: string; from?: string }, @User('sub') userId: string) {
+    return this.githubService.createBranch(dto.repo, dto.branchName, userId, dto.from);
   }
 
   @Post('pull-requests')
   async createPR(
     @Body()
     dto: { repo: string; title: string; head: string; base?: string; body?: string },
+    @User('sub') userId: string,
   ) {
     return this.githubService.createPullRequest(
       dto.repo,
       dto.title,
       dto.head,
+      userId,
       dto.base,
       dto.body,
     );
   }
 
-  // @Post(/webhooks)
-  // async handleWebhook(
-  //   @Req() req: Request,
-  //   @Res() res: Response,
-  //   @Headers('x-hub-signature-256') signature?: string,
-  // ) {
-  //   const rawBody = req.body as Buffer;
+  
+  // @Public()
+  @Post('webhooks')
+  async handleWebhook(
+    @Body() payload: any,
+    @Headers('x-github-event') event: string,
+    @Headers('x-hub-signature-256') signature: string, // Signature can be used for verification
+    @Res() res: Response,
+  ) {
+    // Respond quickly to GitHub to avoid timeouts
+    res.status(202).send('Accepted');
 
-  //   const computedSig =
-  //     'sha256=' +
-  //     crypto.createHmac('sha256', this.secret).update(rawBody).digest('hex');
-
-  //   if (!signature || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(computedSig))) {
-  //     return res.status(401).send('Invalid signature');
-  //   }
-
-  //   const event = req.headers['x-github-event'];
-  //   const json = JSON.parse(rawBody.toString());
-
-  //   console.log('🔥 Webhook event:', event, json.action);
-
-  //   res.status(200).send('OK');
-  // }
+    // Handle events in the background
+    if (event === 'ping') {
+      this.githubWebhookService.handlePingEvent(payload).catch((err) => {
+        console.error('Error handling ping event:', err);
+      });
+    } else if (event === 'push') {
+      this.githubWebhookService.handlePushEvent(payload).catch((err) => {
+        console.error('Error handling push event:', err);
+      });
+    } else if (event === 'pull_request') {
+      this.githubWebhookService.handlePullRequestEvent(payload).catch((err) => {
+        console.error('Error handling pull_request event:', err);
+      });
+    }
+  }
 }

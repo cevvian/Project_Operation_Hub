@@ -1,47 +1,134 @@
 import { Injectable } from '@nestjs/common';
 import { Octokit } from '@octokit/rest';
+
 import { AppException } from 'src/exceptions/app.exception';
 import { ErrorCode } from 'src/exceptions/error-code';
-import { UsersService } from '../users/users.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { Repository } from 'typeorm';
-import { GithubWebhookService } from './github-webhook.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class GithubService {
-  private readonly octokit: Octokit;
-  private readonly owner = 'cevvian';
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-
-    private readonly webhookService: GithubWebhookService
   ) {}
 
-  async createRepo(repoName: string, description?: string) {
-    const { name: owner, token } = await this.getGitHubTokenAndUsername();
-
+  async createRepo(repoName: string, isPrivate: boolean, userId: string, description?: string) {
+    const { token, name: owner } = await this.getGitHubTokenAndUsername(userId);
     const octokit = new Octokit({ auth: token });
 
-    const res = await octokit.repos.createForAuthenticatedUser({
-      name: repoName,
-      description: description || '',
-      private: true,
-    });
+    // Define a simpler type that includes only the properties we need.
+    type RepoInfo = {
+      default_branch: string;
+      [key: string]: any; // Allow other properties
+    };
+    let repoDetails: RepoInfo;
+    let createdInThisRun = false;
 
-    return res.data;
+    try {
+      const { data: existingRepo } = await octokit.repos.get({ owner, repo: repoName });
+      if (existingRepo.size > 0) {
+        throw new AppException(ErrorCode.REPO_EXISTED);
+      }
+      console.log(`Repo '${repoName}' exists but is empty. Proceeding with initialization.`);
+      repoDetails = existingRepo;
+    } catch (error) {
+      if (error instanceof AppException) throw error;
+
+      if (error.status === 404) {
+        try {
+          const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
+            name: repoName,
+            description: description || '',
+            private: isPrivate,
+            auto_init: true, // Create an initial commit automatically
+          });
+          repoDetails = newRepo;
+          createdInThisRun = true;
+        } catch (creationError) {
+          console.error('GitHub API Error on create repo:', creationError.message);
+          throw new AppException(ErrorCode.GITHUB_API_FAIL);
+        }
+      } else {
+        console.error('GitHub API Error on get repo:', error.message);
+        throw new AppException(ErrorCode.GITHUB_API_FAIL);
+      }
+    }
+
+    // Step 3: Initialize the repository with template files.
+    // This entire block is wrapped in a try...catch for rollback purposes.
+    try {
+      const templateDir = path.join(__dirname, '..', '..', 'templates');
+      const templateFiles = ['Jenkinsfile', 'build.sh', 'Dockerfile', 'deploy.ssh.json', 'README.md'];
+
+      const fileBlobs = await Promise.all(
+        templateFiles.map(async (fileName) => {
+          const filePath = path.join(templateDir, fileName);
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const blob = await octokit.git.createBlob({ owner, repo: repoName, content, encoding: 'utf-8' });
+          return { path: fileName, mode: '100644' as const, type: 'blob' as const, sha: blob.data.sha };
+        }),
+      );
+
+      // Get the SHA of the latest commit on the default branch
+      const { data: refData } = await octokit.git.getRef({
+        owner,
+        repo: repoName,
+        ref: `heads/${repoDetails.default_branch}`,
+      });
+      const latestCommitSha = refData.object.sha;
+
+      const tree = await octokit.git.createTree({ owner, repo: repoName, tree: fileBlobs });
+
+      // Create a new commit with the new tree and the initial commit as its parent
+      const commit = await octokit.git.createCommit({
+        owner,
+        repo: repoName,
+        message: 'Feat: Add project templates',
+        tree: tree.data.sha,
+        parents: [latestCommitSha],
+      });
+
+      await octokit.git.updateRef({
+        owner,
+        repo: repoName,
+        ref: `heads/${repoDetails.default_branch}`,
+        sha: commit.data.sha,
+      });
+
+      return repoDetails;
+    } catch (initializationError) {
+      console.error(`Failed to initialize repo '${repoName}'.`, initializationError.message);
+
+      // ROLLBACK: If we created the repo in this run, delete it.
+      if (createdInThisRun) {
+        console.log(`Rolling back repository creation for '${repoName}'...`);
+        try {
+          await octokit.repos.delete({ owner, repo: repoName });
+          console.log(`Successfully deleted repo '${repoName}' as part of rollback.`);
+        } catch (deleteError) {
+          console.error(`FATAL: Failed to rollback and delete repo '${repoName}'. Please delete it manually. Error: ${deleteError.message}`);
+          console.error(`Hint: This is likely due to the Personal Access Token missing the 'delete_repo' scope.`);
+        }
+      }
+
+      // Throw a clear error to the user.
+      throw new AppException(ErrorCode.REPO_INITIALIZATION_FAIL);
+    }
   }
 
 
-  async createBranch(repo: string, branchName: string, from = 'main') {
-    const { name: owner, token } = await this.getGitHubTokenAndUsername();
+  async createBranch(repo: string, branchName: string, userId: string, from = 'main') {
+    const { name: owner, token } = await this.getGitHubTokenAndUsername(userId);
 
     const octokit = new Octokit({ auth: token });
-    
+
     // 1) Lấy SHA của branch gốc
     const base = await octokit.git.getRef({
-      owner: this.owner,
+      owner,
       repo,
       ref: `heads/${from}`,
     });
@@ -49,8 +136,8 @@ export class GithubService {
     const sha = base.data.object.sha;
 
     // 2) Tạo branch mới
-    const newRef = await this.octokit.git.createRef({
-      owner: this.owner,
+    const newRef = await octokit.git.createRef({
+      owner,
       repo,
       ref: `refs/heads/${branchName}`,
       sha,
@@ -59,12 +146,12 @@ export class GithubService {
     return newRef.data;
   }
 
-  async createPullRequest(repo: string, title: string, head: string, base = 'main', body?: string) {
-    const { name: owner, token } = await this.getGitHubTokenAndUsername();
+  async createPullRequest(repo: string, title: string, head: string, userId: string, base = 'main', body?: string) {
+    const { name: owner, token } = await this.getGitHubTokenAndUsername(userId);
     const octokit = new Octokit({ auth: token });
 
     const pr = await octokit.pulls.create({
-      owner: this.owner,
+      owner,
       repo,
       title,
       head,
@@ -75,18 +162,18 @@ export class GithubService {
     return pr.data;
   }
 
-  async getGitHubTokenAndUsername(){
-    // get userid from token
-    const userId = 'wefhgoweigh'
-    const user = await this.userRepo.findOne({
-      where: {id: userId}
-    })
+  async getGitHubTokenAndUsername(userId: string) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
 
-    if(!user){
-      throw new AppException(ErrorCode.USER_NOT_EXISTED)
+    if (!user) {
+      throw new AppException(ErrorCode.USER_NOT_EXISTED);
     }
 
-    return { name: user.githubName, token: user.githubToken }
+    if (!user.githubToken) {
+      throw new AppException(ErrorCode.GITHUB_USER_TOKEN_NOT_FOUND);
+    }
+
+    return { name: user.githubName, token: user.githubToken };
   }
 
   async checkGithubUsernameExists(username: string, token?: string): Promise<boolean> {

@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including devDependencies)
+RUN npm install
+
+# Copy the rest of the application source code
+# This is still useful to have the initial code in the image
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 4000
+
+# The command will be run by docker-compose, but this is a good default
+CMD ["npm", "run", "start:dev"]

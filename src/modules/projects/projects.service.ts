@@ -71,8 +71,8 @@ export class ProjectsService {
     };
   }
 
-  async create(dto: CreateProjectDto) {
-    const owner = await this.usersService.findOne(dto.ownerId);
+  async create(dto: CreateProjectDto, ownerId: string) {
+    const owner = await this.usersService.findOne(ownerId);
 
     const project = this.projectRepo.create({
       name: dto.name,
@@ -439,9 +439,9 @@ export class ProjectsService {
   async update(id: string, dto: UpdateProjectDto) {
     const project = await this._findProjectById(id); // Use the private method to get the raw entity
 
-    if (dto.ownerId && dto.ownerId !== project.owner.id) {
-      project.owner = await this.usersService.findOne(dto.ownerId);
-    }
+    // if (dto.ownerId && dto.ownerId !== project.owner.id) {
+    //   project.owner = await this.usersService.findOne(dto.ownerId);
+    // }
 
     Object.assign(project, {
       name: dto.name ?? project.name,

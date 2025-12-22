@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
-  JoinColumn,
+  JoinColumn
 } from 'typeorm';
 import { Sprint } from './sprint.entity';
 import { Project } from './project.entity';

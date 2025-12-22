@@ -26,7 +26,7 @@ export class BranchService {
   ) {}
 
   
-  async create(createBranchDto: CreateBranchDto) {
+  async create(createBranchDto: CreateBranchDto, userId: string) {
     const task = await this.taskRepo.findOne({ where: { id: createBranchDto.taskId } });
     if (!task) {
       throw new AppException(ErrorCode.TASK_NOT_FOUND);
@@ -38,7 +38,7 @@ export class BranchService {
     }
 
     const name = `feature/${task.key}-${task.title.replace(/\s+/g, '-')}`;
-    const githubBranch = await this.githubService.createBranch(repo.name, name);
+    const githubBranch = await this.githubService.createBranch(repo.name, name, userId);
 
     const branch = await this.branchRepo.create({
       name: name,

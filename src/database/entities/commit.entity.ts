@@ -16,11 +16,11 @@ export class Commit {
   @Column()
   hash: string;
 
-  @ManyToOne(() => User, (user) => user.commits, { onDelete: 'SET NULL' })
-  author: User;
+  @ManyToOne(() => User, (user) => user.commits, { nullable: true, onDelete: 'SET NULL' })
+  author: User | null;
 
   @ManyToOne(() => Task, { nullable: true, onDelete: 'SET NULL' })
-  task: Task;
+  task: Task | null;
 
   @Column({ type: 'text' })
   message: string;
