@@ -25,6 +25,8 @@ import { CommitModule } from './modules/commit/commit.module';
 import { PullRequestModule } from './modules/pull-request/pull-request.module';
 import { JenkinsModule } from './modules/jenkins/jenkins.module';
 import { BuildsModule } from './modules/builds/builds.module';
+import { EventsModule } from './events/events.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -33,7 +35,7 @@ import { BuildsModule } from './modules/builds/builds.module';
       envFilePath: process.env.NODE_ENV === 'production'
         ? join(__dirname, '..', '.env') // production: file .env nằm cùng cấp dist
         : join(__dirname, '..', '.env'), // development: file .env nằm trong backend/
-  }),
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -47,25 +49,25 @@ import { BuildsModule } from './modules/builds/builds.module';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         synchronize: false,
       })
-//       useFactory: (configService: ConfigService) => {
-//   console.log('DB connection config:', {
-//     host: configService.get('DB_HOST'),
-//     port: configService.get('DB_PORT'),
-//     username: configService.get('POSTGRES_USER'),
-//     password: configService.get('POSTGRES_PASSWORD'),
-//     database: configService.get('POSTGRES_DB'),
-//   });
-//   return {
-//     type: 'postgres',
-//     host: configService.get('DB_HOST'),
-//     port: +configService.get('DB_PORT'),
-//     username: configService.get('POSTGRES_USER'),
-//     password: configService.get('POSTGRES_PASSWORD'),
-//     database: configService.get('POSTGRES_DB'),
-//     entities: [join(process.cwd(), 'dist/**/*.entity.js')],
-//     synchronize: true,
-//   };
-// },
+      //       useFactory: (configService: ConfigService) => {
+      //   console.log('DB connection config:', {
+      //     host: configService.get('DB_HOST'),
+      //     port: configService.get('DB_PORT'),
+      //     username: configService.get('POSTGRES_USER'),
+      //     password: configService.get('POSTGRES_PASSWORD'),
+      //     database: configService.get('POSTGRES_DB'),
+      //   });
+      //   return {
+      //     type: 'postgres',
+      //     host: configService.get('DB_HOST'),
+      //     port: +configService.get('DB_PORT'),
+      //     username: configService.get('POSTGRES_USER'),
+      //     password: configService.get('POSTGRES_PASSWORD'),
+      //     database: configService.get('POSTGRES_DB'),
+      //     entities: [join(process.cwd(), 'dist/**/*.entity.js')],
+      //     synchronize: true,
+      //   };
+      // },
 
     }),
 
@@ -86,6 +88,8 @@ import { BuildsModule } from './modules/builds/builds.module';
     PullRequestModule,
     JenkinsModule,
     BuildsModule,
+    EventsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -96,9 +100,9 @@ import { BuildsModule } from './modules/builds/builds.module';
       useClass: AuthGuard,
     },
     {
-    provide: APP_GUARD,
-    useClass: RolesGuard,
-  },
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule { }
