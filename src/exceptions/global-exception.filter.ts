@@ -34,8 +34,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = res?.message || exception.message;
     }
     // Trường hợp 3: Kiểm tra lỗi UUID invalid
-    else if (exception instanceof Error && 
-             exception.message.includes('invalid input syntax for type uuid')) {
+    else if (exception instanceof Error &&
+      exception.message.includes('invalid input syntax for type uuid')) {
       code = ErrorCode.INVALID_UUID_FORMAT;
       message = ErrorMessage[ErrorCode.INVALID_UUID_FORMAT];
       status = ErrorStatus[ErrorCode.INVALID_UUID_FORMAT];

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindManyOptions, IsNull, Not, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, IsNull, Not, Repository, LessThan } from 'typeorm';
 import { Task } from 'src/database/entities/task.entity';
 import { Project } from 'src/database/entities/project.entity';
 import { User } from 'src/database/entities/user.entity';
@@ -20,7 +20,7 @@ export class TasksService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(ProjectMember) private readonly memberRepo: Repository<ProjectMember>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   private async checkProjectMembership(userId: string, projectId: string): Promise<void> {
     // First, check membership table
@@ -228,4 +228,39 @@ export class TasksService {
       return em.save(task);
     });
   }
+
+  async findByUser(userId: string) {
+    return this.taskRepo.find({
+      where: { assignee: { id: userId } },
+      relations: { project: true, sprint: true },
+      order: { dueDate: 'ASC', priority: 'DESC' },
+    });
+  }
+
+  async getStatsByUser(userId: string) {
+    const total = await this.taskRepo.count({ where: { assignee: { id: userId } } });
+
+    const completed = await this.taskRepo.count({
+      where: { assignee: { id: userId }, status: TaskStatus.DONE }
+    });
+
+    const active = await this.taskRepo.count({
+      where: [
+        { assignee: { id: userId }, status: TaskStatus.TODO },
+        { assignee: { id: userId }, status: TaskStatus.IN_PROGRESS },
+        { assignee: { id: userId }, status: TaskStatus.REVIEW },
+      ]
+    });
+
+    const overdue = await this.taskRepo.count({
+      where: {
+        assignee: { id: userId },
+        status: Not(TaskStatus.DONE),
+        dueDate: LessThan(new Date()),
+      }
+    });
+
+    return { total, completed, active, overdue };
+  }
 }
+

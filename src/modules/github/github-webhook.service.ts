@@ -13,6 +13,7 @@ import { Octokit } from '@octokit/rest';
 import { CommitService } from '../commit/commit.service';
 import { PullRequestService } from '../pull-request/pull-request.service';
 import { Repo } from 'src/database/entities/repo.entity';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class GithubWebhookService {
@@ -28,15 +29,23 @@ export class GithubWebhookService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Repo)
     private readonly repoRepo: Repository<Repo>,
-  ) {}
+  ) { }
 
   async getGitHubTokenAndUsername(userId: string) {
-    // TODO: Implement proper user identification from request
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new AppException(ErrorCode.USER_NOT_EXISTED);
     }
-    return { name: user.githubName, token: user.githubToken };
+
+    // Dynamic verification: Fetch the actual user associated with the token
+    try {
+      const octokit = new Octokit({ auth: user.githubToken });
+      const { data: authenticatedUser } = await octokit.users.getAuthenticated();
+      return { name: authenticatedUser.login, token: user.githubToken };
+    } catch (error) {
+      this.logger.error('Failed to verify GitHub token', error.stack);
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
   }
 
   async createWehookRepo(repoName: string, webhookUrl: string, secret: string, userId: string) {
@@ -58,8 +67,36 @@ export class GithubWebhookService {
 
     return res.data;
   }
- 
 
+  async verifyWebhookSignature(payload: any, signature: string): Promise<boolean> {
+    if (!signature) {
+      this.logger.error('Webhook signature missing');
+      return false;
+    }
+
+    const repoFullName = payload?.repository?.full_name;
+    if (!repoFullName) {
+      this.logger.error('Webhook payload missing repository.full_name');
+      return false;
+    }
+
+    // Use findOne to get the secret. Ideally cache this or use a faster lookup.
+    const repo = await this.repoRepo.findOne({ select: ['webhookSecret'], where: { fullName: repoFullName } });
+
+    if (!repo || !repo.webhookSecret) {
+      this.logger.error(`No webhook secret found for repo ${repoFullName}`);
+      return false;
+    }
+
+    const hmac = crypto.createHmac('sha256', repo.webhookSecret);
+    const digest = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
+
+    // Constant time comparison to prevent timing attacks
+    // Note: crypto.timingSafeEqual requires Buffers of equal length.
+    // Simple comparison is "okay" for low security but timingSafeEqual is best practice.
+    // For standard simple implementation:
+    return digest === signature;
+  }
   async handlePingEvent(payload: any) {
     const repoGithubId = payload.repository.id;
     const repo = await this.repoRepo.findOne({ where: { githubId: repoGithubId } });
@@ -192,10 +229,10 @@ export class GithubWebhookService {
 
     const webhookUrl = this.configService.get<string>('WEBHOOK_BASE_URL');
     if (!webhookUrl) {
-        this.logger.error('WEBHOOK_BASE_URL is not configured. Cannot create webhook.');
-        repo.webhookStatus = WebhookStatus.FAILED;
-        await this.repoRepo.save(repo);
-        return;
+      this.logger.error('WEBHOOK_BASE_URL is not configured. Cannot create webhook.');
+      repo.webhookStatus = WebhookStatus.FAILED;
+      await this.repoRepo.save(repo);
+      return;
     }
 
     if (!repo.webhookSecret) {

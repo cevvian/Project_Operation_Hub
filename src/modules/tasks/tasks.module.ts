@@ -8,16 +8,18 @@ import { Task } from 'src/database/entities/task.entity';
 import { User } from 'src/database/entities/user.entity';
 import { ProjectMember } from 'src/database/entities/project-member.entity';
 
+import { TasksGlobalController } from './tasks-global.controller';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Task]),
     TypeOrmModule.forFeature([Sprint]),
     TypeOrmModule.forFeature([Project]),
-        TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User]),
     TypeOrmModule.forFeature([ProjectMember]),
   ],
-  controllers: [TasksController],
+  controllers: [TasksController, TasksGlobalController],
   providers: [TasksService],
   exports: [TasksService]
 })
-export class TasksModule {}
+export class TasksModule { }

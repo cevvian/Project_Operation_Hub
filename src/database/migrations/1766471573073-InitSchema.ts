@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class InitSchema1765893482298 implements MigrationInterface {
-    name = 'InitSchema1765893482298'
+export class InitSchema1766471573073 implements MigrationInterface {
+    name = 'InitSchema1766471573073'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "commits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "hash" character varying NOT NULL, "message" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "repoId" uuid, "authorId" uuid, "taskId" uuid, CONSTRAINT "PK_87adcaf9b8d0f42fee0481c0917" PRIMARY KEY ("id"))`);
@@ -9,7 +9,8 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."pull_requests_status_enum" AS ENUM('open', 'closed', 'merged')`);
         await queryRunner.query(`CREATE TABLE "pull_requests" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "githubId" bigint NOT NULL, "number" integer NOT NULL, "url" character varying NOT NULL, "title" character varying NOT NULL, "description" text, "status" "public"."pull_requests_status_enum" NOT NULL DEFAULT 'open', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "repoId" uuid, "createdById" uuid, CONSTRAINT "UQ_c3cf03f01a3e60feb84b0be5747" UNIQUE ("githubId"), CONSTRAINT "PK_e8a8aa8710c3a9650a19a9c2e7b" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "branches" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "githubUrl" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "taskId" uuid, "repoId" uuid, CONSTRAINT "PK_7f37d3b42defea97f1df0d19535" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "repos" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "githubUrl" character varying NOT NULL, "webhookId" integer, "webhookSecret" character varying, "owner" character varying NOT NULL, "fullName" character varying NOT NULL, "defaultBranch" character varying NOT NULL DEFAULT 'main', "githubId" integer, "isPrivate" boolean NOT NULL DEFAULT true, "patTokenEncrypted" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "projectId" uuid, CONSTRAINT "PK_50f4cdbc4e114515f41760400ba" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "public"."repos_webhookstatus_enum" AS ENUM('PENDING', 'ACTIVE', 'FAILED')`);
+        await queryRunner.query(`CREATE TABLE "repos" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "githubUrl" character varying NOT NULL, "webhookId" integer, "webhookSecret" character varying, "owner" character varying NOT NULL, "fullName" character varying NOT NULL, "defaultBranch" character varying NOT NULL DEFAULT 'main', "githubId" integer, "isPrivate" boolean NOT NULL DEFAULT true, "patTokenEncrypted" character varying, "webhookStatus" "public"."repos_webhookstatus_enum" NOT NULL DEFAULT 'PENDING', "webhookRetryCount" integer NOT NULL DEFAULT '0', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "createdById" uuid NOT NULL, "projectId" uuid, CONSTRAINT "PK_50f4cdbc4e114515f41760400ba" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."builds_status_enum" AS ENUM('pending', 'success', 'failed', 'running')`);
         await queryRunner.query(`CREATE TABLE "builds" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "status" "public"."builds_status_enum" NOT NULL DEFAULT 'pending', "commitHash" character varying NOT NULL, "jenkinsJobName" character varying, "jenkinsBuildNumber" integer, "startedAt" TIMESTAMP NOT NULL DEFAULT now(), "finishedAt" TIMESTAMP, "repoId" uuid, "triggeredById" uuid, CONSTRAINT "PK_c181c897db1d7b044faace6e86c" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."deployments_status_enum" AS ENUM('success', 'failed')`);
@@ -27,7 +28,9 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "attachments" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "filename" character varying NOT NULL, "url" character varying NOT NULL, "size" integer, "mimeType" character varying, "public_id" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "taskId" uuid, "uploadedById" uuid, CONSTRAINT "PK_5e1f050bcff31e3084a1d662412" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."users_role_enum" AS ENUM('super_admin', 'admin', 'user')`);
         await queryRunner.query(`CREATE TABLE "users" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "email" character varying NOT NULL, "password" character varying, "name" character varying NOT NULL, "avatar" character varying, "github_token" character varying, "github_name" character varying, "google_id" character varying, "role" "public"."users_role_enum" NOT NULL DEFAULT 'user', "is_verified" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_97672ac88f789774dd47f7c8be3" UNIQUE ("email"), CONSTRAINT "UQ_6f4376a6d5f91d0ed5cf52b72a5" UNIQUE ("github_name"), CONSTRAINT "UQ_0bd5012aeb82628e07f6a1be53b" UNIQUE ("google_id"), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "notifications" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "type" character varying NOT NULL, "content" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "uploadedById" uuid, CONSTRAINT "PK_6a72c3c0f683f6462415e653c3a" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "public"."notifications_type_enum" AS ENUM('INFO', 'WARNING', 'CRITICAL')`);
+        await queryRunner.query(`CREATE TABLE "notifications" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying NOT NULL, "message" text NOT NULL, "type" "public"."notifications_type_enum" NOT NULL DEFAULT 'INFO', "metadata" json, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "senderId" uuid, CONSTRAINT "PK_6a72c3c0f683f6462415e653c3a" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "user_notifications" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "isRead" boolean NOT NULL DEFAULT false, "readAt" TIMESTAMP, "receivedAt" TIMESTAMP NOT NULL DEFAULT now(), "userId" uuid, "notificationId" uuid, CONSTRAINT "PK_569622b0fd6e6ab3661de985a2b" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "audit_logs" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "action" character varying NOT NULL, "targetType" character varying NOT NULL, "targetId" integer NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "userId" uuid, CONSTRAINT "PK_1bb179d048bbc581caa3b013439" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "task_dependencies" ("task_id" uuid NOT NULL, "dependency_id" uuid NOT NULL, CONSTRAINT "PK_73f03e2027c01a2cb62d91728d9" PRIMARY KEY ("task_id", "dependency_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_1ae6688b1bd90fffe857f4cb70" ON "task_dependencies" ("task_id") `);
@@ -41,6 +44,7 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "pull_requests" ADD CONSTRAINT "FK_b3fb22dd52ef1524e2dcb7ccd33" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "branches" ADD CONSTRAINT "FK_27c0661e31fbbe5274853141ecc" FOREIGN KEY ("taskId") REFERENCES "tasks"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "branches" ADD CONSTRAINT "FK_1b78a5ec78a301b17e1ca5af56c" FOREIGN KEY ("repoId") REFERENCES "repos"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "repos" ADD CONSTRAINT "FK_084c2ac9afddbf8fcb6dd932db1" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "repos" ADD CONSTRAINT "FK_10fc186028e0cee03e9a8e5962f" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "builds" ADD CONSTRAINT "FK_f9430bb22fbd02114ee70ba96fa" FOREIGN KEY ("repoId") REFERENCES "repos"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "builds" ADD CONSTRAINT "FK_9d84705cc8b5636edc6e2e3fe62" FOREIGN KEY ("triggeredById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
@@ -63,7 +67,9 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "tasks" ADD CONSTRAINT "FK_54fc42a253a8338488ec1f960ad" FOREIGN KEY ("parent_task_id") REFERENCES "tasks"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "attachments" ADD CONSTRAINT "FK_65152e15d915ebe1294160bd1d3" FOREIGN KEY ("taskId") REFERENCES "tasks"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "attachments" ADD CONSTRAINT "FK_a436b9dc8304f58060e905eb705" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "notifications" ADD CONSTRAINT "FK_f6ee9774c0683c28751f59d9fd6" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "notifications" ADD CONSTRAINT "FK_ddb7981cf939fe620179bfea33a" FOREIGN KEY ("senderId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_notifications" ADD CONSTRAINT "FK_cb22b968fe41a9f8b219327fde8" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_notifications" ADD CONSTRAINT "FK_01a2c65f414d36cfe6f5d950fb2" FOREIGN KEY ("notificationId") REFERENCES "notifications"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "audit_logs" ADD CONSTRAINT "FK_cfa83f61e4d27a87fcae1e025ab" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "task_dependencies" ADD CONSTRAINT "FK_1ae6688b1bd90fffe857f4cb707" FOREIGN KEY ("task_id") REFERENCES "tasks"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_dependencies" ADD CONSTRAINT "FK_c6a76113bf7a1956147f19bf753" FOREIGN KEY ("dependency_id") REFERENCES "tasks"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -73,7 +79,9 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "task_dependencies" DROP CONSTRAINT "FK_c6a76113bf7a1956147f19bf753"`);
         await queryRunner.query(`ALTER TABLE "task_dependencies" DROP CONSTRAINT "FK_1ae6688b1bd90fffe857f4cb707"`);
         await queryRunner.query(`ALTER TABLE "audit_logs" DROP CONSTRAINT "FK_cfa83f61e4d27a87fcae1e025ab"`);
-        await queryRunner.query(`ALTER TABLE "notifications" DROP CONSTRAINT "FK_f6ee9774c0683c28751f59d9fd6"`);
+        await queryRunner.query(`ALTER TABLE "user_notifications" DROP CONSTRAINT "FK_01a2c65f414d36cfe6f5d950fb2"`);
+        await queryRunner.query(`ALTER TABLE "user_notifications" DROP CONSTRAINT "FK_cb22b968fe41a9f8b219327fde8"`);
+        await queryRunner.query(`ALTER TABLE "notifications" DROP CONSTRAINT "FK_ddb7981cf939fe620179bfea33a"`);
         await queryRunner.query(`ALTER TABLE "attachments" DROP CONSTRAINT "FK_a436b9dc8304f58060e905eb705"`);
         await queryRunner.query(`ALTER TABLE "attachments" DROP CONSTRAINT "FK_65152e15d915ebe1294160bd1d3"`);
         await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_54fc42a253a8338488ec1f960ad"`);
@@ -96,6 +104,7 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "builds" DROP CONSTRAINT "FK_9d84705cc8b5636edc6e2e3fe62"`);
         await queryRunner.query(`ALTER TABLE "builds" DROP CONSTRAINT "FK_f9430bb22fbd02114ee70ba96fa"`);
         await queryRunner.query(`ALTER TABLE "repos" DROP CONSTRAINT "FK_10fc186028e0cee03e9a8e5962f"`);
+        await queryRunner.query(`ALTER TABLE "repos" DROP CONSTRAINT "FK_084c2ac9afddbf8fcb6dd932db1"`);
         await queryRunner.query(`ALTER TABLE "branches" DROP CONSTRAINT "FK_1b78a5ec78a301b17e1ca5af56c"`);
         await queryRunner.query(`ALTER TABLE "branches" DROP CONSTRAINT "FK_27c0661e31fbbe5274853141ecc"`);
         await queryRunner.query(`ALTER TABLE "pull_requests" DROP CONSTRAINT "FK_b3fb22dd52ef1524e2dcb7ccd33"`);
@@ -109,7 +118,9 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_1ae6688b1bd90fffe857f4cb70"`);
         await queryRunner.query(`DROP TABLE "task_dependencies"`);
         await queryRunner.query(`DROP TABLE "audit_logs"`);
+        await queryRunner.query(`DROP TABLE "user_notifications"`);
         await queryRunner.query(`DROP TABLE "notifications"`);
+        await queryRunner.query(`DROP TYPE "public"."notifications_type_enum"`);
         await queryRunner.query(`DROP TABLE "users"`);
         await queryRunner.query(`DROP TYPE "public"."users_role_enum"`);
         await queryRunner.query(`DROP TABLE "attachments"`);
@@ -128,6 +139,7 @@ export class InitSchema1765893482298 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "builds"`);
         await queryRunner.query(`DROP TYPE "public"."builds_status_enum"`);
         await queryRunner.query(`DROP TABLE "repos"`);
+        await queryRunner.query(`DROP TYPE "public"."repos_webhookstatus_enum"`);
         await queryRunner.query(`DROP TABLE "branches"`);
         await queryRunner.query(`DROP TABLE "pull_requests"`);
         await queryRunner.query(`DROP TYPE "public"."pull_requests_status_enum"`);

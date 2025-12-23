@@ -11,7 +11,7 @@ export class GithubController {
   constructor(
     private readonly githubService: GithubService,
     private readonly githubWebhookService: GithubWebhookService, // Inject the service
-  ) {}
+  ) { }
 
   @Post('repos')
   async createRepo(@Body() createRepoDto: CreateRepoDto, @User('sub') userId: string) {
@@ -41,8 +41,8 @@ export class GithubController {
     );
   }
 
-  
-  // @Public()
+
+  @Public()
   @Post('webhooks')
   async handleWebhook(
     @Body() payload: any,
@@ -50,6 +50,14 @@ export class GithubController {
     @Headers('x-hub-signature-256') signature: string, // Signature can be used for verification
     @Res() res: Response,
   ) {
+    // 1. Verify Signature
+    // Ideally, this should be in a Guard or Middleware, but for simplicity/direct control we check it here first.
+    // Or we rely on GithubWebhookService to verify, but it's better to verify before processing.
+    if (!await this.githubWebhookService.verifyWebhookSignature(payload, signature)) {
+      console.error('Webhook signature verification failed');
+      return res.status(401).send('Invalid signature');
+    }
+
     // Respond quickly to GitHub to avoid timeouts
     res.status(202).send('Accepted');
 

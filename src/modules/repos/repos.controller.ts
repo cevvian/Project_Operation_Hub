@@ -8,7 +8,7 @@ import { User } from '../auth/decorator/user.decorator';
 
 @Controller('repos')
 export class ReposController {
-  constructor(private readonly reposService: ReposService) {}
+  constructor(private readonly reposService: ReposService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new repository for a project' })
@@ -26,7 +26,7 @@ export class ReposController {
   ) {
     page = Number(page);
     limit = Number(limit);
-    return this.reposService.findAll(page,limit);
+    return this.reposService.findAll(page, limit);
   }
 
   @Get(':id')
@@ -53,7 +53,7 @@ export class ReposController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a repository by ID' })
   @ApiParam({ name: 'id', type: 'string' })
-  remove(@Param('id') id: string) {
-    return this.reposService.remove(id);
+  remove(@Param('id') id: string, @User('sub') userId: string) {
+    return this.reposService.remove(id, userId);
   }
 }

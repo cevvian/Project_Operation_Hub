@@ -14,7 +14,7 @@ export class GithubService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-  ) {}
+  ) { }
 
   async createRepo(repoName: string, isPrivate: boolean, userId: string, description?: string) {
     const { token, name: owner } = await this.getGitHubTokenAndUsername(userId);
@@ -173,7 +173,16 @@ export class GithubService {
       throw new AppException(ErrorCode.GITHUB_USER_TOKEN_NOT_FOUND);
     }
 
-    return { name: user.githubName, token: user.githubToken };
+    // Dynamic verification: Fetch the actual user associated with the token
+    // This ensures that even if the DB has an old/wrong 'githubName', we use the correct one for API calls.
+    try {
+      const octokit = new Octokit({ auth: user.githubToken });
+      const { data: authenticatedUser } = await octokit.users.getAuthenticated();
+      return { name: authenticatedUser.login, token: user.githubToken };
+    } catch (error) {
+      console.error('Failed to verify GitHub token', error);
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
   }
 
   async checkGithubUsernameExists(username: string, token?: string): Promise<boolean> {
@@ -187,6 +196,22 @@ export class GithubService {
       return true;
     } catch (err) {
       if (err.status === 404) return false;
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
+  }
+
+  async deleteRepo(owner: string, repo: string, userId: string) {
+    const { token } = await this.getGitHubTokenAndUsername(userId);
+    const octokit = new Octokit({ auth: token });
+
+    try {
+      await octokit.repos.delete({
+        owner,
+        repo,
+      });
+    } catch (error) {
+      console.error(`Failed to delete GitHub repo ${owner}/${repo}:`, error.message);
+      // We explicitly throw an error so the caller knows the remote delete failed.
       throw new AppException(ErrorCode.GITHUB_API_FAIL);
     }
   }

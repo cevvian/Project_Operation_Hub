@@ -28,7 +28,7 @@ export class ReposService {
     private readonly githubService: GithubService,
     private readonly webhookService: GithubWebhookService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async create(createRepoDto: CreateRepoDto, userId: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -44,6 +44,17 @@ export class ReposService {
       throw new AppException(ErrorCode.PROJECT_NOT_FOUND);
     }
 
+    const existingRepoByName = await this.repoRepository.findOne({
+      where: {
+        project: { id: createRepoDto.projectId },
+        name: createRepoDto.name,
+      },
+    });
+
+    if (existingRepoByName) {
+      throw new AppException(ErrorCode.REPO_EXISTED);
+    }
+
     // Generate repo name based on project key and repo name
     const repoName = `${project.keyPrefix}-${createRepoDto.name}`;
 
@@ -55,6 +66,14 @@ export class ReposService {
 
       createRepoDto.description,
     );
+
+    const existingRepo = await this.repoRepository.findOne({
+      where: { githubId: githubRepo.id },
+    });
+
+    if (existingRepo) {
+      throw new AppException(ErrorCode.REPO_EXISTED);
+    }
 
     // Create and save repo entity in DB
     const repo = this.repoRepository.create({
@@ -131,14 +150,29 @@ export class ReposService {
     return await this.repoRepository.save(repo);
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId: string) {
+    const repo = await this.findOne(id);
+
+    // Xóa trên GitHub trước
+    // repo.owner holds the owner login name
+    // repo.name holds the short name (which we used to create it, hopefully matches)
+    // NOTE: In `create` we saved `repo.name = createRepoDto.name`.
+    // But we used `${project.keyPrefix}-${createRepoDto.name}` to create on GitHub.
+    // Let's verify what `fullName` holds. It holds `owner/repo-name`.
+    // So we can parse it or reconstruct it.
+    // Reconstruction:
+    const repoNameOnGithub = `${repo.project.keyPrefix}-${repo.name}`;
+
+    // However, safest way is to use the stored data if we trust it.
+    // If we look at `create`: `fullName: githubRepo.full_name` (e.g. "owner/prefix-name")
+    // Let's rely on reconstruction as it is explicit from our logic.
+    await this.githubService.deleteRepo(repo.owner, repoNameOnGithub, userId);
 
     const result = await this.repoRepository.delete(id);
 
     if (result.affected && result.affected > 0) {
       return 'Delete repo successfully';
-    } 
+    }
 
     throw new AppException(ErrorCode.DELETE_FAIL);
   }

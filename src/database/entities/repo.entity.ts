@@ -12,7 +12,6 @@ export class Repo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-
   @ManyToOne(() => User, { nullable: false })
   createdBy: User;
 
@@ -44,7 +43,7 @@ export class Repo {
   defaultBranch: string;
 
   // Repo ID trên GitHub (rất hữu ích)
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   githubId: number;
 
   @Column({ default: true })
