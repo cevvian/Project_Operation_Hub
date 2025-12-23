@@ -215,4 +215,104 @@ export class GithubService {
       throw new AppException(ErrorCode.GITHUB_API_FAIL);
     }
   }
+
+  async getRepoReadme(owner: string, repo: string, token: string) {
+    const octokit = new Octokit({ auth: token });
+    try {
+      const { data } = await octokit.repos.getReadme({ owner, repo });
+      const content = Buffer.from(data.content, 'base64').toString('utf-8');
+      return { content, path: data.path, name: data.name };
+    } catch (error) {
+      if (error.status === 404) {
+        return null;
+      }
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
+  }
+
+  async getRepoTree(owner: string, repo: string, branch = 'main', token: string) {
+    const octokit = new Octokit({ auth: token });
+    try {
+      const { data } = await octokit.git.getTree({
+        owner,
+        repo,
+        tree_sha: branch,
+        recursive: '1'
+      });
+      return data.tree;
+    } catch (error) {
+      console.error('Failed to get repo tree:', error.message);
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
+  }
+
+  async getFileContent(owner: string, repo: string, path: string, token: string) {
+    const octokit = new Octokit({ auth: token });
+    try {
+      const { data } = await octokit.repos.getContent({ owner, repo, path });
+      if (Array.isArray(data)) {
+        throw new Error('Path is a directory, not a file');
+      }
+      if ('content' in data) {
+        const contentBase64 = data.content.replace(/\n/g, ''); // Remove newlines from base64
+        const content = Buffer.from(contentBase64, 'base64').toString('utf-8');
+        return {
+          content,
+          contentBase64, // Keep base64 for images
+          name: data.name,
+          path: data.path,
+          size: data.size
+        };
+      }
+      throw new Error('Not a file');
+    } catch (error) {
+      console.error('Failed to get file content:', error.message);
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
+  }
+
+  async getRepoCommits(owner: string, repo: string, branch = 'main', token: string, perPage = 30) {
+    const octokit = new Octokit({ auth: token });
+    try {
+      const { data } = await octokit.repos.listCommits({
+        owner,
+        repo,
+        sha: branch,
+        per_page: perPage
+      });
+      return data.map(commit => ({
+        sha: commit.sha,
+        message: commit.commit.message,
+        author: {
+          name: commit.commit.author?.name,
+          email: commit.commit.author?.email,
+          date: commit.commit.author?.date,
+          avatar: commit.author?.avatar_url,
+          login: commit.author?.login,
+        },
+        url: commit.html_url,
+      }));
+    } catch (error) {
+      console.error('Failed to get commits:', error.message);
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
+  }
+
+  async getRepoBranches(owner: string, repo: string, token: string) {
+    const octokit = new Octokit({ auth: token });
+    try {
+      const { data } = await octokit.repos.listBranches({ owner, repo });
+      return data.map(branch => ({
+        name: branch.name,
+        commit: {
+          sha: branch.commit.sha,
+          url: branch.commit.url,
+        },
+        protected: branch.protected,
+      }));
+    } catch (error) {
+      console.error('Failed to get branches:', error.message);
+      throw new AppException(ErrorCode.GITHUB_API_FAIL);
+    }
+  }
 }
