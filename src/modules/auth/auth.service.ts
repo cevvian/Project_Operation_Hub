@@ -16,7 +16,7 @@ export class AuthService {
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService
-  ){}
+  ) { }
 
   async signIn(dto: LoginUserDto) {
     const user = await this.userService.validate(dto.email, dto.password);
@@ -25,6 +25,13 @@ export class AuthService {
     // await this.saveToken(user.id, accessToken, refreshToken);
 
     return { accessToken, refreshToken };
+  }
+
+  async changePassword(userId: string, dto: { oldPassword: string, newPassword: string }) {
+    const user = await this.userService.findOne(userId);
+    await this.userService.validate(user.email, dto.oldPassword);
+    // If validate does not throw, passwords match. We can update.
+    return this.userService.update(userId, { password: dto.newPassword });
   }
 
   async register(data: CreateUserDto) {
@@ -60,27 +67,27 @@ export class AuthService {
   async verifyEmail(token: string) {
     const payload = await this.jwtService.verifyAsync(token, {
       secret: this.configService.getOrThrow('JWT_EMAIL_VERIFICATION_SECRET'),
-      }).catch(() => {
-          throw new AppException(ErrorCode.INVALID_TOKEN);
+    }).catch(() => {
+      throw new AppException(ErrorCode.INVALID_TOKEN);
     });
 
     const user = await this.userService.findOne(payload.sub);
 
     if (user.isVerified) {
-        throw new AppException(ErrorCode.ALREADY_VERIFIED);
+      throw new AppException(ErrorCode.ALREADY_VERIFIED);
     }
 
     await this.userService.verifyAccount(user.id);
 
     return {
-        message: 'Email xác thực thành công.'
+      message: 'Email xác thực thành công.'
     };
   }
 
   // https://grok.com/share/bGVnYWN5_7cb25013-b6e6-4213-811d-1645fa5aceef
-  
 
-  async forgotPassword(email: string) {
+
+  async forgotPassword(email: string, source?: string) {
     const user = await this.userService.findUserByEmail(email).catch(() => null);
 
     // To prevent email enumeration attacks, we don't reveal if the user was found or not.
@@ -92,7 +99,8 @@ export class AuthService {
           expiresIn: '15m',
         },
       );
-      await this.emailService.sendPasswordResetEmail(user.email, user.name, token);
+      const autoLogin = source === 'profile';
+      await this.emailService.sendPasswordResetEmail(user.email, user.name, token, autoLogin);
     }
 
     return {
@@ -101,17 +109,24 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const payload = await this.jwtService.verifyAsync(token, {
-      secret: this.configService.getOrThrow('JWT_PASSWORD_RESET_SECRET'),
-    }).catch(() => {
+    let payload;
+    try {
+      payload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.getOrThrow<string>('JWT_PASSWORD_RESET_SECRET'),
+      });
+    } catch {
       throw new AppException(ErrorCode.INVALID_TOKEN);
-    });
+    }
 
     const user = await this.userService.findOne(payload.sub);
-    await this.userService.updatePassword(user.id, newPassword);
+    await this.userService.update(user.id, { password: newPassword });
+
+    // Generate tokens for potential auto-login
+    const tokens = await this.generateToken(user);
 
     return {
       message: 'Mật khẩu đã được đặt lại thành công.',
+      ...tokens,
     };
   }
 

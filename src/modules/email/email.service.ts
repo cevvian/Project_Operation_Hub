@@ -13,7 +13,7 @@ export class EmailService {
   constructor(
     private readonly mailerService: MailerService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   private getFrontendUrl() {
     return (
@@ -88,9 +88,12 @@ export class EmailService {
   }
 
 
-  async sendPasswordResetEmail(email: string, username: string, token: string) {
+  async sendPasswordResetEmail(email: string, username: string, token: string, autoLogin: boolean = false) {
     const appUrl = this.getFrontendUrl();
-    const resetUrl = `${joinUrl(appUrl, '/auth/reset-password')}?token=${token}`;
+    let resetUrl = `${joinUrl(appUrl, '/auth/reset-password')}?token=${token}`;
+    if (autoLogin) {
+      resetUrl += '&autoLogin=true';
+    }
 
     await this.mailerService.sendMail({
       to: email,

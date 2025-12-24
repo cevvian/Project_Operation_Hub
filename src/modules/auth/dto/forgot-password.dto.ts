@@ -5,6 +5,10 @@ export class ForgotPasswordDto {
   @ApiProperty({ description: 'The email of the user who forgot their password' })
   @IsNotEmpty()
   @IsEmail()
+  @IsEmail()
   email: string;
+
+  @ApiProperty({ description: 'Source of the request (e.g., "profile")', required: false })
+  source?: string;
 }
 

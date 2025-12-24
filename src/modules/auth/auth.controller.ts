@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, HttpCode, HttpStatus, Req, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, HttpCode, HttpStatus, Req, Query, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login.dto';
 import { Public } from './guard/auth.guard';
@@ -8,6 +8,7 @@ import { User } from './decorator/user.decorator';
 import { UsersService } from '../users/users.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -16,7 +17,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UsersService
-) {}
+  ) { }
 
   @Public()
   @Post('login')
@@ -40,7 +41,7 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(forgotPasswordDto.email);
+    return this.authService.forgotPassword(forgotPasswordDto.email, forgotPasswordDto.source);
   }
 
   @Public()
@@ -97,14 +98,33 @@ export class AuthController {
     return this.userService.findOne(userId)
   }
 
-//   @UseGuards(AuthGuard)
-//   @Get('profile')
-//   getProfile(@Request() req) {
-//     return req.user;
-//   }
+  @Post('verify-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify user password for sensitive actions' })
+  async verifyPassword(@User() user: any, @Body() body: { password: string }) {
+    try {
+      await this.userService.validate(user.email, body.password);
+      return { success: true };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new ForbiddenException('Incorrect password');
+      }
+      throw error;
+    }
+  }
 
-//   @Get()
-//   findAll(@User() user: UserEntity) {
-//     return this.taskService.findByUser(user.id);
-//   }
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change user password' })
+  async changePassword(@User('sub') userId: string, @Body() dto: ChangePasswordDto) {
+    try {
+      await this.authService.changePassword(userId, dto);
+      return { success: true, message: 'Password updated successfully' };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new ForbiddenException('Incorrect old password');
+      }
+      throw error;
+    }
+  }
 }
