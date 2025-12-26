@@ -8,12 +8,14 @@ import { Repo } from 'src/database/entities/repo.entity';
 import { User } from 'src/database/entities/user.entity';
 import { GithubModule } from '../github/github.module';
 import { ConfigModule } from '@nestjs/config';
+import { JenkinsModule } from '../jenkins/jenkins.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Repo, Project, User]),
     GithubModule,
     ConfigModule,
+    JenkinsModule,
   ],
   controllers: [ReposController, RepoDetailsController],
   providers: [ReposService],

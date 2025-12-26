@@ -36,7 +36,10 @@ export class TasksService {
   }
 
   private async getTask(taskId: string, projectId: string) {
-    const task = await this.taskRepo.findOne({ where: { id: taskId, project: { id: projectId } } });
+    const task = await this.taskRepo.findOne({
+      where: { id: taskId, project: { id: projectId } },
+      relations: ['prLinks', 'prLinks.pullRequest'],
+    });
     if (!task) throw new AppException(ErrorCode.TASK_NOT_FOUND);
     return task;
   }

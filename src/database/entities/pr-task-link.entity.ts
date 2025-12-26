@@ -13,6 +13,6 @@ export class PRTaskLink {
   })
   pullRequest: PullRequest;
 
-  @ManyToOne(() => Task, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Task, (task) => task.prLinks, { onDelete: 'CASCADE' })
   task: Task;
 }

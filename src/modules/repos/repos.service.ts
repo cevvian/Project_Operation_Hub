@@ -11,6 +11,7 @@ import { ErrorCode } from 'src/exceptions/error-code';
 import { AppException } from 'src/exceptions/app.exception';
 import { GithubService } from '../github/github.service';
 import { GithubWebhookService } from '../github/github-webhook.service';
+import { JenkinsService } from '../jenkins/jenkins.service';
 
 
 @Injectable()
@@ -28,6 +29,7 @@ export class ReposService {
     private readonly githubService: GithubService,
     private readonly webhookService: GithubWebhookService,
     private readonly configService: ConfigService,
+    private readonly jenkinsService: JenkinsService,
   ) { }
 
   async create(createRepoDto: CreateRepoDto, userId: string) {
@@ -102,6 +104,9 @@ export class ReposService {
     );
     repo.webhookId = webhook.id;
 
+    // Auto-create Jenkins job for CI/CD
+    await this.jenkinsService.createJob(repoName, githubRepo.full_name);
+
     return this.repoRepository.save(repo);
   }
 
@@ -167,6 +172,9 @@ export class ReposService {
     // If we look at `create`: `fullName: githubRepo.full_name` (e.g. "owner/prefix-name")
     // Let's rely on reconstruction as it is explicit from our logic.
     await this.githubService.deleteRepo(repo.owner, repoNameOnGithub, userId);
+
+    // Delete Jenkins job
+    await this.jenkinsService.deleteJob(repoNameOnGithub);
 
     const result = await this.repoRepository.delete(id);
 

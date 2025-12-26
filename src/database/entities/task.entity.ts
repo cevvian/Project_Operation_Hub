@@ -16,6 +16,7 @@ import { User } from './user.entity';
 import { TaskComment } from './task-comment.entity';
 import { TaskStatus } from './enum/task-status.enum';
 import { TaskPriority } from './enum/task-priority.enum';
+import { PRTaskLink } from './pr-task-link.entity';
 
 @Entity({ name: 'tasks' })
 export class Task {
@@ -86,6 +87,9 @@ export class Task {
 
   @OneToMany(() => TaskComment, (c) => c.task)
   comments: TaskComment[];
+
+  @OneToMany(() => PRTaskLink, (link) => link.task)
+  prLinks: PRTaskLink[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
