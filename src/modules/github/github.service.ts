@@ -6,8 +6,6 @@ import { ErrorCode } from 'src/exceptions/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { Repository } from 'typeorm';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Injectable()
 export class GithubService {
@@ -58,66 +56,10 @@ export class GithubService {
       }
     }
 
-    // Step 3: Initialize the repository with template files.
-    // This entire block is wrapped in a try...catch for rollback purposes.
-    try {
-      const templateDir = path.join(__dirname, '..', '..', 'templates');
-      const templateFiles = ['Jenkinsfile', 'build.sh', 'Dockerfile', 'deploy.ssh.json', 'README.md'];
-
-      const fileBlobs = await Promise.all(
-        templateFiles.map(async (fileName) => {
-          const filePath = path.join(templateDir, fileName);
-          const content = fs.readFileSync(filePath, 'utf-8');
-          const blob = await octokit.git.createBlob({ owner, repo: repoName, content, encoding: 'utf-8' });
-          return { path: fileName, mode: '100644' as const, type: 'blob' as const, sha: blob.data.sha };
-        }),
-      );
-
-      // Get the SHA of the latest commit on the default branch
-      const { data: refData } = await octokit.git.getRef({
-        owner,
-        repo: repoName,
-        ref: `heads/${repoDetails.default_branch}`,
-      });
-      const latestCommitSha = refData.object.sha;
-
-      const tree = await octokit.git.createTree({ owner, repo: repoName, tree: fileBlobs });
-
-      // Create a new commit with the new tree and the initial commit as its parent
-      const commit = await octokit.git.createCommit({
-        owner,
-        repo: repoName,
-        message: 'Feat: Add project templates',
-        tree: tree.data.sha,
-        parents: [latestCommitSha],
-      });
-
-      await octokit.git.updateRef({
-        owner,
-        repo: repoName,
-        ref: `heads/${repoDetails.default_branch}`,
-        sha: commit.data.sha,
-      });
-
-      return repoDetails;
-    } catch (initializationError) {
-      console.error(`Failed to initialize repo '${repoName}'.`, initializationError.message);
-
-      // ROLLBACK: If we created the repo in this run, delete it.
-      if (createdInThisRun) {
-        console.log(`Rolling back repository creation for '${repoName}'...`);
-        try {
-          await octokit.repos.delete({ owner, repo: repoName });
-          console.log(`Successfully deleted repo '${repoName}' as part of rollback.`);
-        } catch (deleteError) {
-          console.error(`FATAL: Failed to rollback and delete repo '${repoName}'. Please delete it manually. Error: ${deleteError.message}`);
-          console.error(`Hint: This is likely due to the Personal Access Token missing the 'delete_repo' scope.`);
-        }
-      }
-
-      // Throw a clear error to the user.
-      throw new AppException(ErrorCode.REPO_INITIALIZATION_FAIL);
-    }
+    // Repository created or found, return details
+    // Note: Jenkins pipeline is now auto-generated via pipeline-templates.ts
+    // No need to commit template files to the repo
+    return repoDetails;
   }
 
 

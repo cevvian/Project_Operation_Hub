@@ -89,6 +89,8 @@ export class ReposService {
       owner: githubRepo.owner.login,
       isPrivate: createRepoDto.isPrivate,
       webhookSecret: createRepoDto.webhookSecret, // Save the secret
+      jenkinsJobName: repoName, // Save Jenkins job name for later use
+      techStack: createRepoDto.techStack || 'nodejs', // Save tech stack preset
     });
 
     const webhookUrl = this.configService.get<string>('WEBHOOK_BASE_URL');
@@ -104,8 +106,8 @@ export class ReposService {
     );
     repo.webhookId = webhook.id;
 
-    // Auto-create Jenkins job for CI/CD
-    await this.jenkinsService.createJob(repoName, githubRepo.full_name);
+    // Auto-create Jenkins job for CI/CD with tech stack preset
+    await this.jenkinsService.createJob(repoName, githubRepo.full_name, createRepoDto.techStack || 'nodejs');
 
     return this.repoRepository.save(repo);
   }

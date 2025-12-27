@@ -63,6 +63,14 @@ export class Repo {
   @Column({ type: 'int', default: 0 })
   webhookRetryCount: number;
 
+  // Tên job trên Jenkins - lưu chính xác tên đã tạo
+  @Column({ nullable: true })
+  jenkinsJobName: string;
+
+  // Tech stack for CI/CD pipeline preset (nodejs, react, nextjs)
+  @Column({ type: 'varchar', length: 50, default: 'nodejs' })
+  techStack: string;
+
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,9 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class CreateRepoDto {
@@ -21,6 +25,11 @@ export class CreateRepoDto {
   })
   @IsString()
   @IsNotEmpty()
+  @MinLength(1, { message: 'Repository name must not be empty' })
+  @MaxLength(100, { message: 'Repository name must be at most 100 characters' })
+  @Matches(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$|^[a-zA-Z0-9]$/, {
+    message: 'Repository name can only contain letters, numbers, hyphens, underscores, and periods. Cannot start with a period or hyphen.',
+  })
   name: string;
 
   @ApiPropertyOptional({
@@ -57,4 +66,17 @@ export class CreateRepoDto {
   @IsString()
   @IsNotEmpty()
   webhookSecret: string;
+
+  @ApiPropertyOptional({
+    description: 'Tech stack for CI/CD pipeline preset',
+    example: 'nodejs',
+    enum: ['nodejs', 'react', 'nextjs'],
+    default: 'nodejs',
+  })
+  @IsString()
+  @IsOptional()
+  @IsIn(['nodejs', 'react', 'nextjs'], {
+    message: 'Tech stack must be one of: nodejs, react, nextjs',
+  })
+  techStack?: string = 'nodejs';
 }

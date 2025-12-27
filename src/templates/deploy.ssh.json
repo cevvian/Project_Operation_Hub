@@ -1,6 +1,0 @@
-{
-  "server": "your-staging-server.com",
-  "sourcePath": "./dist",
-  "remotePath": "/var/www/my-app",
-  "restartCommand": "pm2 restart my-app"
-}
