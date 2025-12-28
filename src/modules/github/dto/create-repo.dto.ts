@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
 
-export class CreateRepoDto {
+export class GithubCreateRepoDto {
   @ApiProperty({
     description: 'The name of the repository.',
     example: 'my-awesome-project',

@@ -12,6 +12,7 @@ import { AppException } from 'src/exceptions/app.exception';
 import { GithubService } from '../github/github.service';
 import { GithubWebhookService } from '../github/github-webhook.service';
 import { JenkinsService } from '../jenkins/jenkins.service';
+import { TemplateService, TechStackTemplate } from './template.service';
 
 
 @Injectable()
@@ -30,6 +31,7 @@ export class ReposService {
     private readonly webhookService: GithubWebhookService,
     private readonly configService: ConfigService,
     private readonly jenkinsService: JenkinsService,
+    private readonly templateService: TemplateService,
   ) { }
 
   async create(createRepoDto: CreateRepoDto, userId: string) {
@@ -77,6 +79,22 @@ export class ReposService {
       throw new AppException(ErrorCode.REPO_EXISTED);
     }
 
+    const techStack = createRepoDto.techStack || 'nodejs';
+
+    // Initialize template files if not empty
+    if (techStack !== 'empty') {
+      try {
+        await this.templateService.initializeTemplate(
+          githubRepo.full_name,
+          techStack as TechStackTemplate,
+          userId,
+        );
+      } catch (error) {
+        console.error('Failed to initialize template files:', error.message);
+        // Continue with repo creation even if template init fails
+      }
+    }
+
     // Create and save repo entity in DB
     const repo = this.repoRepository.create({
       project,
@@ -90,7 +108,7 @@ export class ReposService {
       isPrivate: createRepoDto.isPrivate,
       webhookSecret: createRepoDto.webhookSecret, // Save the secret
       jenkinsJobName: repoName, // Save Jenkins job name for later use
-      techStack: createRepoDto.techStack || 'nodejs', // Save tech stack preset
+      techStack: techStack, // Save tech stack preset
     });
 
     const webhookUrl = this.configService.get<string>('WEBHOOK_BASE_URL');
@@ -107,7 +125,7 @@ export class ReposService {
     repo.webhookId = webhook.id;
 
     // Auto-create Jenkins job for CI/CD with tech stack preset
-    await this.jenkinsService.createJob(repoName, githubRepo.full_name, createRepoDto.techStack || 'nodejs');
+    await this.jenkinsService.createJob(repoName, githubRepo.full_name, techStack);
 
     return this.repoRepository.save(repo);
   }

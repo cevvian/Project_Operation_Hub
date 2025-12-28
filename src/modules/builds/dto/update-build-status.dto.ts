@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { BuildStatus } from 'src/database/entities/enum/build-status.enum';
 
@@ -12,20 +12,26 @@ export class UpdateBuildStatusDto {
   @IsNotEmpty()
   status: BuildStatus;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'The build number from Jenkins',
     example: 123,
   })
   @IsNumber()
-  @IsNotEmpty()
-  jenkinsBuildNumber: number;
+  @IsOptional()
+  jenkinsBuildNumber?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Timestamp when the build finished',
     example: '2023-10-27T10:00:00Z',
   })
   @IsString()
-  @IsNotEmpty()
-  finishedAt: string;
-}
+  @IsOptional()
+  finishedAt?: string;
 
+  @ApiPropertyOptional({
+    description: 'Console output logs from Jenkins build',
+  })
+  @IsString()
+  @IsOptional()
+  consoleOutput?: string;
+}

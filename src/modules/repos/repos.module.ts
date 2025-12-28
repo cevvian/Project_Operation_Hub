@@ -9,6 +9,7 @@ import { User } from 'src/database/entities/user.entity';
 import { GithubModule } from '../github/github.module';
 import { ConfigModule } from '@nestjs/config';
 import { JenkinsModule } from '../jenkins/jenkins.module';
+import { TemplateService } from './template.service';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { JenkinsModule } from '../jenkins/jenkins.module';
     JenkinsModule,
   ],
   controllers: [ReposController, RepoDetailsController],
-  providers: [ReposService],
+  providers: [ReposService, TemplateService],
 })
 export class ReposModule { }
+

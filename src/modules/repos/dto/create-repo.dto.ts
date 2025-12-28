@@ -70,13 +70,13 @@ export class CreateRepoDto {
   @ApiPropertyOptional({
     description: 'Tech stack for CI/CD pipeline preset',
     example: 'nodejs',
-    enum: ['nodejs', 'react', 'nextjs'],
+    enum: ['nodejs', 'react', 'nextjs', 'python', 'static', 'empty'],
     default: 'nodejs',
   })
   @IsString()
   @IsOptional()
-  @IsIn(['nodejs', 'react', 'nextjs'], {
-    message: 'Tech stack must be one of: nodejs, react, nextjs',
+  @IsIn(['nodejs', 'react', 'nextjs', 'python', 'static', 'empty'], {
+    message: 'Tech stack must be one of: nodejs, react, nextjs, python, static, empty',
   })
   techStack?: string = 'nodejs';
 }

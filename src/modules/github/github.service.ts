@@ -257,4 +257,44 @@ export class GithubService {
       throw new AppException(ErrorCode.GITHUB_API_FAIL);
     }
   }
+
+  /**
+   * Push template files to a repository
+   * @param repoFullName - Full name of the repo (owner/repo)
+   * @param files - Array of files to create with path and content
+   * @param userId - User ID to get GitHub token
+   */
+  async pushTemplateFiles(
+    repoFullName: string,
+    files: { path: string; content: string }[],
+    userId: string,
+  ): Promise<void> {
+    const { token, name: owner } = await this.getGitHubTokenAndUsername(userId);
+    const repo = repoFullName.split('/')[1] || repoFullName;
+    const octokit = new Octokit({ auth: token });
+
+    console.log(`Pushing ${files.length} template files to ${repoFullName}`);
+
+    for (const file of files) {
+      try {
+        // Convert content to base64
+        const contentBase64 = Buffer.from(file.content).toString('base64');
+
+        await octokit.repos.createOrUpdateFileContents({
+          owner,
+          repo,
+          path: file.path,
+          message: `Initialize ${file.path} - Project Operation Hub`,
+          content: contentBase64,
+        });
+
+        console.log(`Created file: ${file.path}`);
+      } catch (error) {
+        console.error(`Failed to create file ${file.path}:`, error.message);
+        // Continue with other files even if one fails
+      }
+    }
+
+    console.log(`Successfully pushed template files to ${repoFullName}`);
+  }
 }

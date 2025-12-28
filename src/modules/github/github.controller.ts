@@ -3,7 +3,7 @@ import { User } from '../auth/decorator/user.decorator';
 import { GithubService } from './github.service';
 import { GithubWebhookService } from './github-webhook.service'; // Import the new service
 import type { Response } from 'express';
-import { CreateRepoDto } from './dto/create-repo.dto'; // Import the new DTO
+import { GithubCreateRepoDto } from './dto/create-repo.dto';
 import { Public } from '../auth/guard/auth.guard';
 
 @Controller('github')
@@ -14,7 +14,7 @@ export class GithubController {
   ) { }
 
   @Post('repos')
-  async createRepo(@Body() createRepoDto: CreateRepoDto, @User('sub') userId: string) {
+  async createRepo(@Body() createRepoDto: GithubCreateRepoDto, @User('sub') userId: string) {
     // Default to true if isPrivate is not provided
     const isPrivate = createRepoDto.isPrivate !== undefined ? createRepoDto.isPrivate : true;
     return this.githubService.createRepo(createRepoDto.name, isPrivate, userId, createRepoDto.description);

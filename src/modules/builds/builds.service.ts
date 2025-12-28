@@ -3,12 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Build } from 'src/database/entities/build.entity';
 import { Deployment } from 'src/database/entities/deployment.entity';
 import { Commit } from 'src/database/entities/commit.entity';
+import { Repo } from 'src/database/entities/repo.entity';
 import { BuildStatus } from 'src/database/entities/enum/build-status.enum';
 import { DeploymentStatus } from 'src/database/entities/enum/deploy-status.enum';
 import { TaskStatus } from 'src/database/entities/enum/task-status.enum';
 import { AppException } from 'src/exceptions/app.exception';
 import { ErrorCode } from 'src/exceptions/error-code';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { TasksService } from '../tasks/tasks.service';
 import { UpdateBuildStatusDto } from './dto/update-build-status.dto';
 
@@ -23,8 +24,47 @@ export class BuildsService {
     private readonly deploymentRepository: Repository<Deployment>,
     @InjectRepository(Commit)
     private readonly commitRepository: Repository<Commit>,
+    @InjectRepository(Repo)
+    private readonly repoRepository: Repository<Repo>,
     private readonly tasksService: TasksService,
-  ) {}
+  ) { }
+
+  /**
+   * Find all builds for a project with pagination
+   */
+  async findByProject(projectId: string, page: number = 1, limit: number = 20) {
+    const [data, total] = await this.buildRepository.findAndCount({
+      where: { repo: { project: { id: projectId } } },
+      relations: ['repo', 'triggeredBy'],
+      order: { startedAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Find a single build by ID
+   */
+  async findOne(id: string) {
+    const build = await this.buildRepository.findOne({
+      where: { id },
+      relations: ['repo', 'triggeredBy'],
+    });
+
+    if (!build) {
+      throw new AppException(ErrorCode.BUILD_NOT_FOUND);
+    }
+
+    return build;
+  }
 
   async updateStatusFromJenkins(id: string, dto: UpdateBuildStatusDto) {
     const build = await this.buildRepository.findOne({ where: { id }, relations: ['repo', 'triggeredBy'] });
@@ -33,8 +73,17 @@ export class BuildsService {
     }
 
     build.status = dto.status;
-    build.finishedAt = new Date(dto.finishedAt);
-    build.jenkinsBuildNumber = dto.jenkinsBuildNumber;
+    if (dto.finishedAt) {
+      build.finishedAt = new Date(dto.finishedAt);
+    } else {
+      build.finishedAt = new Date();
+    }
+    if (dto.jenkinsBuildNumber) {
+      build.jenkinsBuildNumber = dto.jenkinsBuildNumber;
+    }
+    if (dto.consoleOutput) {
+      build.consoleOutput = dto.consoleOutput;
+    }
 
     if (dto.status === BuildStatus.SUCCESS) {
       await this.handleSuccessfulBuild(build);
@@ -49,13 +98,10 @@ export class BuildsService {
     this.logger.log(`Build ${build.id} succeeded. Creating deployment record.`);
     const deployment = this.deploymentRepository.create({
       build: build,
-      // Assuming a default environment for now. This could be parameterized.
-      // environment: stagingEnvironment,
       deployedBy: build.triggeredBy,
-      status: DeploymentStatus.SUCCESS, // Or 'IN_PROGRESS' if deployment is a separate step
+      status: DeploymentStatus.SUCCESS,
     });
     await this.deploymentRepository.save(deployment);
-    // TODO: Notify QA team
   }
 
   private async handleFailedBuild(build: Build) {
@@ -68,7 +114,6 @@ export class BuildsService {
 
     if (!commit || !commit.task) {
       this.logger.log(`No task found linked to commit ${build.commitHash.substring(0, 7)}.`);
-      // TODO: Notify developer who triggered the build as a fallback
       return;
     }
 
@@ -80,8 +125,5 @@ export class BuildsService {
     } catch (error) {
       this.logger.error(`Failed to update task ${task.key} to BLOCKED`, error.stack);
     }
-
-    // TODO: Notify developer
   }
 }
-

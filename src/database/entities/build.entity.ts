@@ -33,6 +33,9 @@ export class Build {
   @Column({ type: 'timestamp', nullable: true })
   finishedAt: Date;
 
+  @Column({ type: 'text', nullable: true })
+  consoleOutput: string | null;
+
   @OneToOne(() => Deployment, (deployment) => deployment.build)
   deployment: Deployment;
 }

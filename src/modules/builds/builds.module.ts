@@ -4,6 +4,7 @@ import { Build } from 'src/database/entities/build.entity';
 import { Deployment } from 'src/database/entities/deployment.entity';
 import { Task } from 'src/database/entities/task.entity';
 import { Commit } from 'src/database/entities/commit.entity';
+import { Repo } from 'src/database/entities/repo.entity';
 import { TasksModule } from '../tasks/tasks.module';
 import { BuildsController } from './builds.controller';
 import { BuildsService } from './builds.service';
@@ -12,13 +13,11 @@ import { ApiKeyGuard } from '../auth/guard/api-key.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Build, Deployment, Task, Commit]),
-    TasksModule, // Import TasksModule to use TasksService
-    ConfigModule, // Import ConfigModule to use ConfigService in ApiKeyGuard
+    TypeOrmModule.forFeature([Build, Deployment, Task, Commit, Repo]),
+    TasksModule,
+    ConfigModule,
   ],
   controllers: [BuildsController],
-  providers: [BuildsService, ApiKeyGuard], // Provide ApiKeyGuard here
+  providers: [BuildsService, ApiKeyGuard],
 })
-export class BuildsModule {}
-
-
+export class BuildsModule { }
