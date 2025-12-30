@@ -20,7 +20,6 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { RolesGuard } from './modules/auth/guard/role.guard';
 import { ApplicationInitModule } from './modules/init/application-init.module';
-import { TestCaseModule } from './modules/test-case/test-case.module';
 import { CommitModule } from './modules/commit/commit.module';
 import { PullRequestModule } from './modules/pull-request/pull-request.module';
 import { JenkinsModule } from './modules/jenkins/jenkins.module';
@@ -83,7 +82,6 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     BranchModule,
     AuthModule,
     ApplicationInitModule,
-    TestCaseModule,
     CommitModule,
     PullRequestModule,
     JenkinsModule,

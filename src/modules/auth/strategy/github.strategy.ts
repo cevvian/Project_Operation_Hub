@@ -11,10 +11,11 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
       clientSecret: configService.getOrThrow<string>('GITHUB_CLIENT_SECRET'),
       callbackURL: configService.getOrThrow<string>('GITHUB_CALLBACK_URL'),
       scope: ['user:email'], // Yêu cầu quyền truy cập email của người dùng
+      passReqToCallback: true, // Enable access to request object in validate callback
     });
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: Profile, done: (error: any, user?: any, info?: any) => void): Promise<any> {
+  async validate(req: any, accessToken: string, refreshToken: string, profile: Profile, done: (error: any, user?: any, info?: any) => void): Promise<any> {
     // Sau khi GitHub xác thực thành công, hàm này sẽ được gọi.
     // Chúng ta sẽ lấy thông tin cần thiết từ profile và trả về.
     const { username, emails, photos, displayName } = profile;

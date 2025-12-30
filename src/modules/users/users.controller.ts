@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req, Res } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from '../auth/decorator/user.decorator';
 import { UsersService } from './users.service';
@@ -10,7 +10,7 @@ import { CreateGitHubTokenDto } from './dto/create-github-token.dto';
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new user' })
@@ -24,17 +24,36 @@ export class UsersController {
     return this.usersService.verifyAccount(id);
   }
 
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update user status (lock/unlock)' })
+  updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.usersService.updateStatus(id, status as any);
+  }
+
+  @Post(':id/reset-password')
+  @ApiOperation({ summary: 'Send password reset email to user' })
+  async resetPassword(@Param('id') id: string) {
+    const user = await this.usersService.findOne(id);
+    // This will be handled by AuthService - for now just return success
+    // In production, inject AuthService and call forgotPassword
+    return { message: `Password reset email would be sent to ${user.email}` };
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiQuery({ name: 'search', required: false, description: 'Search by name or email' })
+  @ApiQuery({ name: 'role', required: false, description: 'Filter by role' })
   findAll(
     @Query('page') page = 1,
-    @Query('limit') limit = 10
+    @Query('limit') limit = 10,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
   ) {
     page = Number(page);
     limit = Number(limit);
-    return this.usersService.findAll(page,limit);
+    return this.usersService.findAll(page, limit, search, role);
   }
 
   @Post('/github-token')
@@ -65,22 +84,5 @@ export class UsersController {
   @ApiOperation({ summary: 'Delete a user' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
-  }
-
-  @Get('connect/github')
-  @UseGuards(AuthGuard('github'))
-  async connectGithubAccount(@User('sub') userId: string) {
-    // This endpoint starts the GitHub connection process for a logged-in user.
-    // The AuthGuard('github') will redirect to GitHub.
-  }
-
-  @Get('connect/github/callback')
-  @UseGuards(AuthGuard('github'))
-  async connectGithubAccountCallback(@User('sub') userId: string, @Req() req: any) {
-    // After GitHub callback, req.user contains the GitHub profile.
-    const githubProfile = req.user;
-    await this.usersService.connectGithubAccount(userId, githubProfile.githubName);
-    // You can redirect the user to a settings page or return a success message.
-    return { message: 'GitHub account connected successfully.' };
   }
 }

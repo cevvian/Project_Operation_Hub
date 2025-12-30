@@ -14,6 +14,7 @@ import { InviteProjectMemberDto } from './dto/invite-project-member.dto';
 import { PendingProjectInvitation } from 'src/database/entities/pending-project-invitation.entity';
 import { User } from 'src/database/entities/user.entity';
 import { EmailService } from '../email/email.service';
+import { UserStatus } from 'src/database/entities/enum/user-status.enum';
 
 
 @Injectable()
@@ -32,7 +33,7 @@ export class ProjectsService {
 
     private readonly usersService: UsersService,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   async getMyProject(page: number, limit: number, userId: string) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
@@ -121,7 +122,7 @@ export class ProjectsService {
       failed: [],
     };
 
-        const emailsToInvite = new Set(dto.emails?.filter(e => e) || []);
+    const emailsToInvite = new Set(dto.emails?.filter(e => e) || []);
 
     // Handle userIds first
     if (dto.userIds) {
@@ -359,7 +360,7 @@ export class ProjectsService {
 
     const users = await this.userRepo
       .createQueryBuilder('user')
-      .where('user.isVerified = :isVerified', { isVerified: true })
+      .where('user.status = :status', { status: UserStatus.ACTIVE })
       .andWhere('(user.name ILIKE :query OR user.email ILIKE :query)', {
         query: `%${query}%`,
       })

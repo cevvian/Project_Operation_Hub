@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, UseGuards, HttpCode, HttpStatus, Req, Query, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, HttpCode, HttpStatus, Req, Res, Query, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { ConfigService } from '@nestjs/config';
 import { LoginUserDto } from './dto/login.dto';
 import { Public } from './guard/auth.guard';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -16,7 +17,8 @@ import { AuthGuard } from '@nestjs/passport';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly userService: UsersService
+    private readonly userService: UsersService,
+    private readonly configService: ConfigService,
   ) { }
 
   @Public()
@@ -59,13 +61,44 @@ export class AuthController {
     // Passport will handle the redirection to GitHub.
   }
 
+  /**
+   * Initiate GitHub connect flow for already authenticated users.
+   * This manually redirects to GitHub OAuth with state containing userId.
+   */
+  @Get('github/connect')
+  @ApiOperation({ summary: 'Initiate GitHub OAuth2 connect flow (for existing users)' })
+  async githubConnect(@Query('userId') userId: string, @Res() res) {
+    if (!userId) {
+      return res.redirect('/auth/github'); // Fallback to normal login
+    }
+
+    const githubAuthUrl = this.authService.getGithubConnectUrl(userId);
+    return res.redirect(githubAuthUrl);
+  }
+
   @Public()
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
-  @ApiOperation({ summary: 'Handle GitHub OAuth2 callback' })
-  githubAuthCallback(@Req() req) {
-    // The user profile is attached to req.user by the GithubStrategy's validate method.
-    return this.authService.loginWithGithub(req.user);
+  @ApiOperation({ summary: 'Handle GitHub OAuth2 callback - supports both login and connect flows' })
+  async githubAuthCallback(@Req() req, @Res() res) {
+    const frontendUrl = this.configService.get('APP_FRONTEND_URL') || 'http://localhost:3000';
+    const githubProfile = req.user;
+
+    // Parse state parameter - format: "connect:userId" for connect flow
+    const state = req.query.state as string || '';
+
+    if (state.startsWith('connect:')) {
+      // Connect flow: Link GitHub to existing account
+      const userId = state.replace('connect:', '');
+      if (userId) {
+        await this.authService.connectGithubToUser(userId, githubProfile.githubName);
+        return res.redirect(`${frontendUrl}/user/profile?github_connected=true`);
+      }
+    }
+
+    // Login flow: Create/find user and return tokens
+    const tokens = await this.authService.loginWithGithub(req.user);
+    return res.redirect(`${frontendUrl}/auth/github/callback?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`);
   }
 
   @Public()
@@ -80,8 +113,10 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Handle Google OAuth2 callback' })
-  googleAuthCallback(@Req() req) {
-    return this.authService.loginWithGoogle(req.user);
+  async googleAuthCallback(@Req() req, @Res() res) {
+    const tokens = await this.authService.loginWithGoogle(req.user);
+    const frontendUrl = process.env.APP_FRONTEND_URL || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/auth/google/callback?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`);
   }
 
   @Post('resend-verification')

@@ -3,6 +3,7 @@ import { AppException } from 'src/exceptions/app.exception';
 import { ErrorCode } from 'src/exceptions/error-code';
 import { User } from 'src/database/entities/user.entity';
 import { Role } from 'src/database/entities/enum/role.enum';
+import { UserStatus } from 'src/database/entities/enum/user-status.enum';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from "bcrypt";
@@ -12,28 +13,28 @@ export class ApplicationInitService implements OnModuleInit {
     constructor(
         @InjectRepository(User)
         private readonly usersRepository: Repository<User>,
-    ){}
+    ) { }
 
-    async onModuleInit(){
+    async onModuleInit() {
         const admin = await this.usersRepository.findOne({
-            where: {role: Role.ADMIN}
+            where: { role: Role.ADMIN }
         })
 
-        if(!admin) {
+        if (!admin) {
             const user = await this.usersRepository.create({
                 name: "Admin",
                 email: "admin@gmail.com",
                 password: await bcrypt.hash('adminadmin', 10),
-                isVerified: true,
+                status: UserStatus.ACTIVE,
                 role: Role.ADMIN
             });
 
             await this.usersRepository.save(user)
 
             const existing = await this.usersRepository.findOne({
-                where: {email: "admin@gmail.com"}
+                where: { email: "admin@gmail.com" }
             })
-            if(!existing)
+            if (!existing)
                 throw new AppException(ErrorCode.CREATE_FAILED)
 
             console.log('Admin account created. Default password is : adminadmin. Please change it soon!');
@@ -41,15 +42,15 @@ export class ApplicationInitService implements OnModuleInit {
 
 
         const normalUser = await this.usersRepository.findOne({
-            where: { email: 'user@gmail.com' } 
+            where: { email: 'user@gmail.com' }
         });
 
         if (!normalUser) {
             const user = this.usersRepository.create({
                 name: "Normal User",
-                email: "user@gmail.com", 
+                email: "user@gmail.com",
                 password: await bcrypt.hash('useruser', 10),
-                isVerified: true,
+                status: UserStatus.ACTIVE,
                 role: Role.USER
             });
 
@@ -64,8 +65,8 @@ export class ApplicationInitService implements OnModuleInit {
 
             console.log('Normal User account created. Default password is : useruser. Please change it soon!');
         }
-    
+
 
     }
-    
+
 }

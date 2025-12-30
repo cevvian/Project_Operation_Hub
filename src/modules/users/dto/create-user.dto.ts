@@ -10,6 +10,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { Role } from 'src/database/entities/enum/role.enum';
+import { UserStatus } from 'src/database/entities/enum/user-status.enum';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -63,33 +64,34 @@ export class CreateUserDto {
   googleId?: string;
 
   @ApiPropertyOptional({
-    description: 'Flag indicating if the user is verified. Defaults to false.',
-    example: false,
+    description: 'Status of the user. Default is UNVERIFIED.',
+    enum: UserStatus,
+    example: UserStatus.ACTIVE,
   })
   @IsOptional()
-  @IsBoolean()
-  isVerified?: boolean;
+  @IsEnum(UserStatus)
+  status?: UserStatus;
 
   @ApiPropertyOptional({
-      description: 'GitHub personal access token for syncing with GitHub services.',
-      example: 'ghp_1234567890abcdef',
+    description: 'GitHub personal access token for syncing with GitHub services.',
+    example: 'ghp_1234567890abcdef',
   })
   @IsOptional()
   @IsString()
   github_token?: string;
 
   @ApiPropertyOptional({
-      description: 'Invitation token if the user is signing up through a project invite link.',
-      example: 'invitation-token-hex',
+    description: 'Invitation token if the user is signing up through a project invite link.',
+    example: 'invitation-token-hex',
   })
   @IsOptional()
   @IsString()
   invitation_token?: string;
 
   @ApiPropertyOptional({
-      description: 'Platform-level role of the user. Default is USER.',
-      enum: Role,
-      example: Role.USER,
+    description: 'Platform-level role of the user. Default is USER.',
+    enum: Role,
+    example: Role.USER,
   })
   @IsOptional()
   @IsEnum(Role)

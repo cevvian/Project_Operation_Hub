@@ -3,7 +3,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
-import { In, Repository } from 'typeorm';
+import { In, Repository, ILike, FindOptionsWhere } from 'typeorm';
+import { UserStatus } from 'src/database/entities/enum/user-status.enum';
+import { Role } from 'src/database/entities/enum/role.enum';
 import { AppException } from 'src/exceptions/app.exception';
 import { ErrorCode } from 'src/exceptions/error-code';
 import * as bcrypt from 'bcrypt';
@@ -29,7 +31,8 @@ export class UsersService {
     const user = this.userRepo.create({
       ...createUserDto,
       password: createUserDto.password ? await bcrypt.hash(createUserDto.password, 10) : undefined,
-      isVerified: false,
+      status: createUserDto.status || UserStatus.UNVERIFIED,
+      role: createUserDto.platform_role || Role.USER,
     });
 
     return this.userRepo.save(user);
@@ -38,7 +41,7 @@ export class UsersService {
   async validate(email: string, password: string) {
     const user = await this.findUserByEmail(email)
 
-    if (!user.isVerified) {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new AppException(ErrorCode.USER_INACTIVE);
     }
 
@@ -52,8 +55,25 @@ export class UsersService {
 
   async verifyAccount(userId: string) {
     const user = await this.findOne(userId)
-    user.isVerified = true
+    user.status = UserStatus.ACTIVE
     return await this.userRepo.save(user)
+  }
+
+  async updateStatus(userId: string, status: UserStatus) {
+    const user = await this.findOne(userId);
+
+    // Validation: Can only lock ACTIVE users
+    if (status === UserStatus.LOCKED && user.status !== UserStatus.ACTIVE) {
+      throw new AppException(ErrorCode.INVALID_USER_STATUS_TRANSITION);
+    }
+
+    // Validation: Can only unlock LOCKED users
+    if (status === UserStatus.ACTIVE && user.status !== UserStatus.LOCKED) {
+      throw new AppException(ErrorCode.INVALID_USER_STATUS_TRANSITION);
+    }
+
+    user.status = status;
+    return await this.userRepo.save(user);
   }
 
   async findUsers(userIds: string[]) {
@@ -87,10 +107,54 @@ export class UsersService {
     return await this.userRepo.save(user)
   }
 
-  async findAll(page: number, limit: number) {
+  async findAll(page: number, limit: number, search?: string, role?: string) {
+    const where: FindOptionsWhere<User> | FindOptionsWhere<User>[] = {};
+
+    if (search) {
+      // Search by name OR email
+      // Note: when using OR with other conditions (like role), we need array (OR) of objects
+      if (role) {
+        // (name LIKE %search% AND role = role) OR (email LIKE %search% AND role = role)
+        const roleFilter = role as any;
+        Object.assign(where, [
+          { name: ILike(`%${search}%`), role: roleFilter },
+          { email: ILike(`%${search}%`), role: roleFilter },
+        ]);
+      } else {
+        // name LIKE %search% OR email LIKE %search%
+        Object.assign(where, [
+          { name: ILike(`%${search}%`) },
+          { email: ILike(`%${search}%`) },
+        ]);
+      }
+    } else if (role) {
+      // Only role filter
+      Object.assign(where, { role: role as any });
+    }
+
+    // Since 'where' logic above with Object.assign on initial {} might be tricky with how TypeORM handles [] vs {},
+    // let's assign explicitly.
+    let findConditions: FindOptionsWhere<User> | FindOptionsWhere<User>[] = {};
+
+    if (search && role) {
+      findConditions = [
+        { name: ILike(`%${search}%`), role: role as any },
+        { email: ILike(`%${search}%`), role: role as any }
+      ];
+    } else if (search) {
+      findConditions = [
+        { name: ILike(`%${search}%`) },
+        { email: ILike(`%${search}%`) }
+      ];
+    } else if (role) {
+      findConditions = { role: role as any };
+    }
+
     const [data, total] = await this.userRepo.findAndCount({
+      where: findConditions,
       skip: (page - 1) * limit,
       take: limit,
+      order: { created_at: 'DESC' },
     });
 
     return {

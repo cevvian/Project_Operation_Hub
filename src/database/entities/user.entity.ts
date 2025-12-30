@@ -8,6 +8,7 @@ import { Role } from './enum/role.enum';
 import { ProjectMember } from './project-member.entity';
 import { Attachment } from './attachment.entity';
 import { TaskComment } from './task-comment.entity';
+import { UserStatus } from './enum/user-status.enum';
 
 
 @Entity({ name: 'users' })
@@ -44,8 +45,12 @@ export class User {
     })
     role: Role;
 
-    @Column({ name: 'is_verified', default: false })
-    isVerified: boolean;
+    @Column({
+        type: 'enum',
+        enum: UserStatus,
+        default: UserStatus.UNVERIFIED
+    })
+    status: UserStatus;
 
     // @OneToMany(() => UserTeamRole, (utr) => utr.user)
     // teamRoles: UserTeamRole[];

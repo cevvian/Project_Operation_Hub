@@ -4,6 +4,7 @@ import { LoginUserDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/database/entities/user.entity';
+import { UserStatus } from 'src/database/entities/enum/user-status.enum';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { EmailService } from '../email/email.service';
 import { AppException } from 'src/exceptions/app.exception';
@@ -39,14 +40,14 @@ export class AuthService {
 
     // If sign-up comes from an invitation link, activate immediately (skip email verification)
     if (data.invitation_token) {
-      if (!user.isVerified) {
+      if (user.status !== UserStatus.ACTIVE) {
         await this.userService.verifyAccount(user.id);
       }
       return { message: 'Account created via invitation. You can sign in now.' };
     }
 
     // Normal flow: require email verification
-    if (!user.isVerified) {
+    if (user.status !== UserStatus.ACTIVE) {
       const token = await this.jwtService.signAsync(
         { sub: user.id, email: user.email },
         {
@@ -73,7 +74,7 @@ export class AuthService {
 
     const user = await this.userService.findOne(payload.sub);
 
-    if (user.isVerified) {
+    if (user.status === UserStatus.ACTIVE) {
       throw new AppException(ErrorCode.ALREADY_VERIFIED);
     }
 
@@ -83,9 +84,6 @@ export class AuthService {
       message: 'Email xác thực thành công.'
     };
   }
-
-  // https://grok.com/share/bGVnYWN5_7cb25013-b6e6-4213-811d-1645fa5aceef
-
 
   async forgotPassword(email: string, source?: string) {
     const user = await this.userService.findUserByEmail(email).catch(() => null);
@@ -154,14 +152,14 @@ export class AuthService {
       return;
     }
 
-    if (user.isVerified) {
+    if (user.status === UserStatus.ACTIVE) {
       throw new AppException(ErrorCode.ALREADY_VERIFIED);
     }
 
     const token = await this.jwtService.signAsync(
       { sub: user.id, email: user.email },
       {
-        secret: this.configService.getOrThrow('JWT_EMAIL_VERIFICATION_SECRET'),
+        secret: this.configService.getOrThrow<string>('JWT_EMAIL_VERIFICATION_SECRET'),
         expiresIn: '15m',
       },
     );
@@ -170,61 +168,75 @@ export class AuthService {
   }
 
   async loginWithGithub(userFromGithub: any) {
-    if (!userFromGithub.email) {
-      throw new AppException(ErrorCode.GITHUB_UNAUTHORIZED);
-    }
-
-    let user = await this.userService.findUserByGithubName(userFromGithub.githubName);
+    let user = await this.userService.findUserByEmail(userFromGithub.email).catch(() => null);
 
     if (!user) {
-      // If user does not exist, create a new one
       user = await this.userService.create({
         email: userFromGithub.email,
         name: userFromGithub.name,
         githubName: userFromGithub.githubName,
         avatar: userFromGithub.avatar,
-        isVerified: true, // Automatically verify users from social logins
-      });
+        password: null, // No password for social login
+      } as any);
+
+      // Verify/Activate new social users immediately
+      await this.userService.verifyAccount(user.id);
     } else {
-      // If user exists, update their info just in case it changed
-      await this.userService.update(user.id, {
-        name: userFromGithub.name,
-        avatar: userFromGithub.avatar,
-      });
+      // Update existing user info if needed
+      if (!user.githubName) {
+        user = await this.userService.update(user.id, { githubName: userFromGithub.githubName });
+      }
+    }
+    // Ensure social login users are active appropriately?
+    if (user.status !== UserStatus.ACTIVE && user.status !== UserStatus.UNVERIFIED) {
+      // ie. LOCKED
+      throw new AppException(ErrorCode.USER_INACTIVE);
+    }
+    if (user.status === UserStatus.UNVERIFIED) {
+      await this.userService.verifyAccount(user.id);
     }
 
-    // Generate tokens and return them
-    const { accessToken, refreshToken } = await this.generateToken(user);
-    return { accessToken, refreshToken };
+
+    return this.generateToken(user);
   }
 
   async loginWithGoogle(userFromGoogle: any) {
-    if (!userFromGoogle.email) {
-      throw new AppException(ErrorCode.UNAUTHORIZED);
-    }
-
-    let user = await this.userService.findUserByGoogleId(userFromGoogle.googleId);
+    let user = await this.userService.findUserByEmail(userFromGoogle.email).catch(() => null);
 
     if (!user) {
-      // If user does not exist, create a new one
       user = await this.userService.create({
         email: userFromGoogle.email,
         name: userFromGoogle.name,
         googleId: userFromGoogle.googleId,
         avatar: userFromGoogle.avatar,
-        isVerified: true, // Automatically verify users from social logins
-      });
+        password: null,
+      } as any)
+      await this.userService.verifyAccount(user.id);
     } else {
-      // If user exists, update their info
-      await this.userService.update(user.id, {
-        name: userFromGoogle.name,
-        avatar: userFromGoogle.avatar,
-      });
+      if (!user.googleId) {
+        user = await this.userService.update(user.id, { googleId: userFromGoogle.googleId });
+      }
     }
 
-    // Generate tokens and return them
-    const { accessToken, refreshToken } = await this.generateToken(user);
-    return { accessToken, refreshToken };
+    if (user.status !== UserStatus.ACTIVE && user.status !== UserStatus.UNVERIFIED) {
+      throw new AppException(ErrorCode.USER_INACTIVE);
+    }
+    if (user.status === UserStatus.UNVERIFIED) {
+      await this.userService.verifyAccount(user.id);
+    }
+
+    return this.generateToken(user);
+  }
+
+  async connectGithubToUser(userId: string, githubName: string): Promise<void> {
+    await this.userService.connectGithubAccount(userId, githubName);
+  }
+
+  getGithubConnectUrl(userId: string): string {
+    const clientId = this.configService.getOrThrow<string>('GITHUB_CLIENT_ID');
+    const callbackUrl = this.configService.getOrThrow<string>('GITHUB_CALLBACK_URL');
+    const scope = 'user:email';
+    const state = `connect:${userId}`;
+    return `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=${scope}&state=${encodeURIComponent(state)}`;
   }
 }
-

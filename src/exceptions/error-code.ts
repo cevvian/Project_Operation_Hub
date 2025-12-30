@@ -60,7 +60,7 @@ export enum ErrorCode {
   GITHUB_WEBHOOK_CONFIG_INVALID = 5003,
   GITHUB_API_FAIL = 5004,
   GITHUB_USERNAME_NOT_FOUND = 5005,
-  GITHUB_USER_TOKEN_NOT_FOUND  = 5006,
+  GITHUB_USER_TOKEN_NOT_FOUND = 5006,
   REPO_EXISTED = 5007,
   REPO_INITIALIZATION_FAIL = 5008,
 
@@ -72,7 +72,8 @@ export enum ErrorCode {
   CREATE_FAILED = 5105,
   REFRESH_TOKEN_REQUIRED = 5106,
   ACCOUNT_ALREADY_REGISTERED = 5107,
-  GITHUB_UNAUTHORIZED=5108,
+  GITHUB_UNAUTHORIZED = 5108,
+  INVALID_USER_STATUS_TRANSITION = 5109,
 
   DATABASE_TRANSACTION_FAIL = 9996,
   INVALID_UUID_FORMAT = 9997,
@@ -134,7 +135,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.BUILD_NOT_FOUND]: 'Build not exists',
 
   [ErrorCode.BRANCH_NOT_FOUND]: 'Branch not exists',
-  
+
   [ErrorCode.GITHUB_API_ERROR]: 'GitHub API error - check organization name and token permissions',
   [ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID]: 'Webhook URL or secret not set',
   [ErrorCode.GITHUB_API_FAIL]: 'Connect to GitHub failed',
@@ -151,6 +152,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.CREATE_FAILED]: 'Create account admin failed',
   [ErrorCode.REFRESH_TOKEN_REQUIRED]: 'Refresh token is required',
   [ErrorCode.ACCOUNT_ALREADY_REGISTERED]: 'Your account already register',
+  [ErrorCode.INVALID_USER_STATUS_TRANSITION]: 'Cannot perform this status change. Only ACTIVE users can be locked.',
 
   [ErrorCode.DATABASE_TRANSACTION_FAIL]: 'Database transaction failed',
   [ErrorCode.INVALID_UUID_FORMAT]: 'Invalid ID format',
@@ -217,7 +219,7 @@ export const ErrorStatus: Record<ErrorCode, HttpStatus> = {
   [ErrorCode.GITHUB_USER_TOKEN_NOT_FOUND]: HttpStatus.BAD_REQUEST,
   [ErrorCode.GITHUB_WEBHOOK_CONFIG_INVALID]: HttpStatus.BAD_REQUEST,
   [ErrorCode.GITHUB_API_FAIL]: HttpStatus.BAD_GATEWAY,
-  [ErrorCode.GITHUB_USERNAME_NOT_FOUND]: HttpStatus.NOT_FOUND ,
+  [ErrorCode.GITHUB_USERNAME_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.GITHUB_UNAUTHORIZED]: HttpStatus.BAD_REQUEST,
   [ErrorCode.REPO_EXISTED]: HttpStatus.CONFLICT,
   [ErrorCode.REPO_INITIALIZATION_FAIL]: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -229,6 +231,7 @@ export const ErrorStatus: Record<ErrorCode, HttpStatus> = {
   [ErrorCode.CREATE_FAILED]: HttpStatus.CONFLICT,
   [ErrorCode.REFRESH_TOKEN_REQUIRED]: HttpStatus.BAD_REQUEST,
   [ErrorCode.ACCOUNT_ALREADY_REGISTERED]: HttpStatus.CONFLICT,
+  [ErrorCode.INVALID_USER_STATUS_TRANSITION]: HttpStatus.BAD_REQUEST,
 
   [ErrorCode.DATABASE_TRANSACTION_FAIL]: HttpStatus.INTERNAL_SERVER_ERROR,
   [ErrorCode.INVALID_UUID_FORMAT]: HttpStatus.BAD_REQUEST,
