@@ -7,7 +7,6 @@ import { ProjectMember } from './project-member.entity';
 import { PendingProjectInvitation } from './pending-project-invitation.entity';
 
 
-
 @Entity({ name: 'projects' })
 export class Project {
   @PrimaryGeneratedColumn('uuid')
@@ -35,9 +34,6 @@ export class Project {
 
   @OneToMany(() => Environment, (env) => env.project)
   environments: Environment[];
-
-
-
 
   @OneToMany(() => PendingProjectInvitation, (invitation) => invitation.project)
   pendingInvitations: PendingProjectInvitation[];

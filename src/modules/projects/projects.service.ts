@@ -380,13 +380,34 @@ export class ProjectsService {
     };
   }
 
-  async findAll(page: number, limit: number) {
-    const [data, total] = await this.projectRepo.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      relations: ['owner'],
-      order: { created_at: 'DESC' },
-    });
+  async findAll(page: number, limit: number, search?: string, sortBy?: string) {
+    const qb = this.projectRepo.createQueryBuilder('project')
+      .leftJoinAndSelect('project.owner', 'owner')
+      .leftJoinAndSelect('project.members', 'members')
+      .leftJoinAndSelect('members.user', 'memberUser')
+      .leftJoinAndSelect('project.repos', 'repos');
+
+    // Search by project name or owner name
+    if (search && search.trim()) {
+      qb.where('project.name ILIKE :search OR owner.name ILIKE :search', { search: `%${search.trim()}%` });
+    }
+
+    // Sorting
+    switch (sortBy) {
+      case 'name':
+        qb.orderBy('project.name', 'ASC');
+        break;
+      case 'owner':
+        qb.orderBy('owner.name', 'ASC');
+        break;
+      default:
+        qb.orderBy('project.created_at', 'DESC');
+    }
+
+    const [data, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       data,

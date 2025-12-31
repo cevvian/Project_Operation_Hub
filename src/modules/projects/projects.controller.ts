@@ -11,7 +11,7 @@ import { User } from '../auth/decorator/user.decorator';
 @UseGuards(AuthGuard)
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new project' })
@@ -82,15 +82,22 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Get all projects (paginated)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
-  async findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.projectsService.findAll(Number(page), Number(limit));
+  @ApiQuery({ name: 'search', required: false, description: 'Search by project name or owner name' })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'Sort by: created, name, owner', example: 'created' })
+  async findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
+  ) {
+    return this.projectsService.findAll(Number(page), Number(limit), search, sortBy);
   }
 
   @Get('/my-projects')
   @ApiOperation({ summary: 'Get all my projects (paginated)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
-  async findAllMyProject(@Query('page') page = 1, @Query('limit') limit = 10,  @User('sub') userId: string) {
+  async findAllMyProject(@Query('page') page = 1, @Query('limit') limit = 10, @User('sub') userId: string) {
     return this.projectsService.getMyProject(Number(page), Number(limit), userId);
   }
 
