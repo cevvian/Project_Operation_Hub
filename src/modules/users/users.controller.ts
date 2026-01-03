@@ -6,6 +6,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CreateGitHubTokenDto } from './dto/create-github-token.dto';
+import { AuditLog } from '../audit-log/audit-log.decorator';
+import { AUDIT_ACTIONS, AUDIT_SEVERITY, TARGET_TYPES } from '../audit-log/audit-log.constants';
 
 @ApiTags('Users')
 @Controller('users')
@@ -13,6 +15,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
   @Post()
+  @AuditLog({ action: AUDIT_ACTIONS.USER_CREATE, targetType: TARGET_TYPES.USER, includeBody: true })
   @ApiOperation({ summary: 'Create a new user' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
@@ -25,6 +28,7 @@ export class UsersController {
   }
 
   @Patch(':id/status')
+  @AuditLog({ action: AUDIT_ACTIONS.USER_STATUS_CHANGE, severity: AUDIT_SEVERITY.WARN, targetType: TARGET_TYPES.USER })
   @ApiOperation({ summary: 'Update user status (lock/unlock)' })
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.usersService.updateStatus(id, status as any);
@@ -75,12 +79,14 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @AuditLog({ action: AUDIT_ACTIONS.USER_UPDATE, targetType: TARGET_TYPES.USER, includeBody: true })
   @ApiOperation({ summary: 'Update a user' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
+  @AuditLog({ action: AUDIT_ACTIONS.USER_DELETE, severity: AUDIT_SEVERITY.CRITICAL, targetType: TARGET_TYPES.USER })
   @ApiOperation({ summary: 'Delete a user' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);

@@ -16,7 +16,7 @@ import { TaskCommentsModule } from './modules/task-comments/task-comments.module
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { BranchModule } from './modules/branch/branch.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { RolesGuard } from './modules/auth/guard/role.guard';
 import { ApplicationInitModule } from './modules/init/application-init.module';
@@ -26,6 +26,9 @@ import { JenkinsModule } from './modules/jenkins/jenkins.module';
 import { BuildsModule } from './modules/builds/builds.module';
 import { EventsModule } from './events/events.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { AuditLogInterceptor } from './modules/audit-log/audit-log.interceptor';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -88,6 +91,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     BuildsModule,
     EventsModule,
     NotificationsModule,
+    AuditLogModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
@@ -100,6 +105,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
     },
   ],
 })

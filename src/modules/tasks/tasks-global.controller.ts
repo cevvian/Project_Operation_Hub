@@ -22,4 +22,11 @@ export class TasksGlobalController {
         const userId = req.user.sub;
         return this.tasksService.getStatsByUser(userId);
     }
+
+    @Get('me/activity')
+    @ApiOperation({ summary: 'Get weekly task activity for the current user' })
+    async getMyActivity(@Req() req) {
+        const userId = req.user.sub;
+        return this.tasksService.getWeeklyActivity(userId);
+    }
 }

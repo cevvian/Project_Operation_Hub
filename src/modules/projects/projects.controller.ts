@@ -7,6 +7,8 @@ import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { InviteProjectMemberDto } from './dto/invite-project-member.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { User } from '../auth/decorator/user.decorator';
+import { AuditLog } from '../audit-log/audit-log.decorator';
+import { AUDIT_ACTIONS, AUDIT_SEVERITY, TARGET_TYPES } from '../audit-log/audit-log.constants';
 
 @UseGuards(AuthGuard)
 @Controller('projects')
@@ -14,6 +16,7 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) { }
 
   @Post()
+  @AuditLog({ action: AUDIT_ACTIONS.PROJECT_CREATE, targetType: TARGET_TYPES.PROJECT, includeBody: true })
   @ApiOperation({ summary: 'Create a new project' })
   @ApiResponse({ status: 201, description: 'Project created successfully.' })
   async create(@Body() createProjectDto: CreateProjectDto, @User('sub') requestingUserId: string) {
@@ -21,6 +24,7 @@ export class ProjectsController {
   }
 
   @Post(':id/invite')
+  @AuditLog({ action: AUDIT_ACTIONS.MEMBER_INVITE, targetType: TARGET_TYPES.PROJECT, targetIdParam: 'id' })
   @ApiOperation({ summary: 'Invite members to a project' })
   @ApiParam({ name: 'id', description: 'Project ID', example: 'uuid-of-project' })
   inviteMembers(
@@ -51,6 +55,7 @@ export class ProjectsController {
 
 
   @Post('accept-invitation')
+  @AuditLog({ action: AUDIT_ACTIONS.MEMBER_ACCEPT, targetType: TARGET_TYPES.PROJECT })
   @ApiOperation({ summary: 'Accept an invitation to join a project' })
   acceptInvitation(
     @Body() dto: AcceptInvitationDto,
@@ -60,6 +65,7 @@ export class ProjectsController {
   }
 
   @Delete(':projectId/members/:userId')
+  @AuditLog({ action: AUDIT_ACTIONS.MEMBER_REMOVE, severity: AUDIT_SEVERITY.WARN, targetType: TARGET_TYPES.PROJECT, targetIdParam: 'projectId' })
   @ApiOperation({ summary: 'Remove a member from a project' })
   @ApiParam({ name: 'projectId', description: 'Project ID', example: 'uuid-of-project' })
   @ApiParam({ name: 'userId', description: 'User ID', example: 'uuid-of-user' })
@@ -109,6 +115,7 @@ export class ProjectsController {
   }
 
   @Patch(':id')
+  @AuditLog({ action: AUDIT_ACTIONS.PROJECT_UPDATE, targetType: TARGET_TYPES.PROJECT, includeBody: true })
   @ApiOperation({ summary: 'Update project by ID' })
   @ApiParam({ name: 'id', description: 'Project ID', example: 'a7d9c0c8-59c1-4634-8fa5-51e5f8e71d92' })
   async update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
@@ -116,6 +123,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @AuditLog({ action: AUDIT_ACTIONS.PROJECT_DELETE, severity: AUDIT_SEVERITY.CRITICAL, targetType: TARGET_TYPES.PROJECT })
   @ApiOperation({ summary: 'Delete project by ID' })
   @ApiParam({ name: 'id', description: 'Project ID', example: 'a7d9c0c8-59c1-4634-8fa5-51e5f8e71d92' })
   async remove(@Param('id') id: string) {

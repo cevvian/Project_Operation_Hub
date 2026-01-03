@@ -5,12 +5,15 @@ import { UpdateRepoDto } from './dto/update-repo.dto';
 import { ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorator/current-user.decorator';
 import { User } from '../auth/decorator/user.decorator';
+import { AuditLog } from '../audit-log/audit-log.decorator';
+import { AUDIT_ACTIONS, AUDIT_SEVERITY, TARGET_TYPES } from '../audit-log/audit-log.constants';
 
 @Controller('repos')
 export class ReposController {
   constructor(private readonly reposService: ReposService) { }
 
   @Post()
+  @AuditLog({ action: AUDIT_ACTIONS.REPO_CREATE, targetType: TARGET_TYPES.REPO, includeBody: true })
   @ApiOperation({ summary: 'Create a new repository for a project' })
   create(@Body() createRepoDto: CreateRepoDto, @User('sub') requestingUserId: string) {
     return this.reposService.create(createRepoDto, requestingUserId);
@@ -44,6 +47,7 @@ export class ReposController {
   }
 
   @Patch(':id')
+  @AuditLog({ action: AUDIT_ACTIONS.REPO_UPDATE, targetType: TARGET_TYPES.REPO, includeBody: true })
   @ApiOperation({ summary: 'Update a repository' })
   @ApiParam({ name: 'id', type: 'string' })
   update(@Param('id') id: string, @Body() updateRepoDto: UpdateRepoDto) {
@@ -51,6 +55,7 @@ export class ReposController {
   }
 
   @Delete(':id')
+  @AuditLog({ action: AUDIT_ACTIONS.REPO_DELETE, severity: AUDIT_SEVERITY.CRITICAL, targetType: TARGET_TYPES.REPO })
   @ApiOperation({ summary: 'Delete a repository by ID' })
   @ApiParam({ name: 'id', type: 'string' })
   remove(@Param('id') id: string, @User('sub') userId: string) {

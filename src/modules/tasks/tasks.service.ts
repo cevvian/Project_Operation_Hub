@@ -265,5 +265,48 @@ export class TasksService {
 
     return { total, completed, active, overdue };
   }
+
+  async getWeeklyActivity(userId: string) {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    // Get tasks updated in last 7 days where user is assignee OR reporter
+    const tasks = await this.taskRepo
+      .createQueryBuilder('task')
+      .where('(task.assignee_id = :userId OR task.reporter_id = :userId)', { userId })
+      .andWhere('task.updatedAt >= :start', { start: sevenDaysAgo })
+      .andWhere('task.updatedAt <= :end', { end: today })
+      .getMany();
+
+    // Group by day
+    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    const result: { day: string; date: string; tasks: number }[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(today.getDate() - i);
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const count = tasks.filter(t => {
+        const updated = new Date(t.updatedAt);
+        return updated >= dayStart && updated <= dayEnd;
+      }).length;
+
+      result.push({
+        day: dayNames[date.getDay()],
+        date: date.toISOString().split('T')[0],
+        tasks: count,
+      });
+    }
+
+    return result;
+  }
 }
 
