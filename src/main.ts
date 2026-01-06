@@ -7,15 +7,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for frontend
-  app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      process.env.APP_FRONTEND_URL
-    ],
-    credentials: true,
-  });
+  // Enable CORS for all origins
+  app.enableCors();
 
   // Exception Filter
   app.useGlobalFilters(new GlobalExceptionFilter());
